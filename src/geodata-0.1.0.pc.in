@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+datarootdir=@datarootdir@
+datadir=@datadir@
+includedir=@includedir@/geodata
+
+Name: libgeodata
+Description: Basic geo services abstraction
+Version: @VERSION@
+Requires:
+Libs: -L${libdir} -lgeodata
+Cflags: -I${includedir}

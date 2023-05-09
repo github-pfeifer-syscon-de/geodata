@@ -1,2 +1,4 @@
 # geodata
-To use the various weather data services, for glglobe use a lib (not yet used)
+To use the various weather/geo data services, for glglobe use a lib
+
+
