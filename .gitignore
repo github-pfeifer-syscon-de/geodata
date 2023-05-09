@@ -56,3 +56,5 @@
 /m4/ltsugar.m4
 /autom4te.cache/
 /nbproject/
+/src/Makefile
+/src/Makefile.in
