@@ -1,6 +1,7 @@
 # geodata
 To use the various weather/geo data services, for glglobe use a lib
 
+For now uses: https://re-d.ssec.wisc.edu/ for weather map display.
 
 To build use any (lin)ux:
 <pre>

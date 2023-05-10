@@ -42,9 +42,8 @@ class Weather;
 class WeatherProduct;
 
 
-
-
-class WeatherImageRequest : public SpoonMessage
+class WeatherImageRequest
+: public SpoonMessage
 {
 public:
     WeatherImageRequest(Weather* weather, double south, double west, double north, double east
@@ -144,47 +143,30 @@ private:
     static constexpr double MAX_MERCATOR_LAT = 85.0;   // beyond this simple/web-mercator mapping isn't useful
 };
 
+
+// used to implement a single weather service
 class Weather
 {
 public:
     Weather(WeatherConsumer* consumer);
     virtual ~Weather() = default;
+    WeatherConsumer* get_consumer();
+    virtual double yAxisProjection(double input); // needs to be overridden for non linear mappings
 
-    void capabilities();
-    void request(const Glib::ustring& productId);
+    static std::vector<Glib::ustring> get_services();
+    static std::shared_ptr<Weather> create_service(const Glib::ustring &name, WeatherConsumer* consumer);
+    virtual Glib::ustring get_base_url() = 0;
+    virtual void inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessage* message) = 0;
+    virtual void inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessage* message) = 0;
+    virtual void check_product(const Glib::ustring& weatherProductId) = 0;
+    virtual void capabilities() = 0;
+    virtual void request(const Glib::ustring& productId) = 0;
+    virtual std::shared_ptr<WeatherProduct> find_product(const Glib::ustring& weatherProductId) = 0;
+    virtual std::vector<std::shared_ptr<WeatherProduct>> get_products() = 0;
+    virtual Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product) = 0;
 
-    Glib::ustring get_base_url() {
-        return m_base_url;
-    }
-    WeatherConsumer* get_consumer() {
-        return m_consumer;
-    }
-    std::vector<std::shared_ptr<WeatherProduct>> get_products() {
-        return m_products;
-    }
-    std::shared_ptr<WeatherProduct> find_product(const Glib::ustring& weatherProductId);
-    void check_product(const Glib::ustring& weatherProductId);
-    double yAxisProjection(double input);
-    double yAxisUnProjection(double input);
-    void send(WeatherImageRequest& request, std::shared_ptr<WeatherProduct>& product);
-    std::string dump(const guint8 *data, gsize size);
-    void inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessage* message);
-    Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product);
 
 protected:
-    void inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessage* message);
-    void inst_on_latest_callback(const Glib::ustring& error, int status, SpoonMessage* message);
-    void inst_on_extend_callback(const Glib::ustring& error, int status, SpoonMessage* message);
-    void get_extend(std::shared_ptr<WeatherProduct>& product);
-    void inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMessage* message, std::shared_ptr<WeatherProduct> product);
-    double normToRadians(double norm);
-    double xAxisProjection(double input);
-
-private:
-    SpoonSession m_spoonSession{"map private use "};
     WeatherConsumer* m_consumer;
-    static const char* m_base_url;
-    std::vector<std::shared_ptr<WeatherProduct>> m_products;
-    Glib::ustring queued_product_request;
-};
 
+};

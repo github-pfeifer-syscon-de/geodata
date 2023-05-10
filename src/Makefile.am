@@ -25,6 +25,7 @@ libgeodata_la_SOURCES = \
 	Spoon.cpp \
 	JsonHelper.cpp \
 	Weather.cpp \
+	RealEarth.cpp \
 	GeoJson.cpp
 
 libgeodata_la_LIBADD =  \
@@ -41,6 +42,7 @@ pkginclude_HEADERS = \
 	Spoon.hpp \
 	JsonHelper.hpp \
 	Weather.hpp \
+	RealEarth.hpp \
 	GeoJson.hpp
 
 pkgconfigdir = $(libdir)/pkgconfig

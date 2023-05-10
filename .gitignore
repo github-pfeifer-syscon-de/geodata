@@ -58,3 +58,7 @@
 /nbproject/
 /src/Makefile
 /src/Makefile.in
+/src/configure.ac
+/PKGBUILD
+/pkg/
+/src/.deps/libgeodata_la-Weather.Tpo
