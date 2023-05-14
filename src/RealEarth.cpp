@@ -18,16 +18,250 @@
 #include <sstream>      // std::ostringstream
 #include <iostream>
 #include <iomanip>
-#include <cmath>
 #include <strings.h>
 #include <memory.h>
 
 
 #include "RealEarth.hpp"
 #include "JsonHelper.hpp"
+#include "MapProjection.hpp"
+#include "LocaleContext.hpp"
 
-const char* RealEarth::m_base_url{"https://realearth.ssec.wisc.edu/"};
+// it might be an option to use WMS here as well
+//   but the current implementation has some nice features like query avail times...
+// https://realearth.ssec.wisc.edu/cgi-bin/mapserv?map=SNOWDEPTH24.map&service=wms&version=1.3.0&request=GetCapabilities
 
+RealEarthImageRequest::RealEarthImageRequest(RealEarth* realEarth
+    , double south, double west, double north, double east
+    , int pixX, int pixY, int pixWidth, int pixHeight
+    , std::shared_ptr<RealEarthProduct>& product)
+: WeatherImageRequest(realEarth->get_base_url(), "api/image")
+, m_realEarth{realEarth}
+, m_south{south}
+, m_west{west}
+, m_north{north}
+, m_east{east}
+, m_pixX{pixX}
+, m_pixY{pixY}
+, m_pixWidth{pixWidth}
+, m_pixHeight{pixHeight}
+{
+    build_url(product);
+    signal_receive().connect(
+        sigc::mem_fun(*realEarth, &RealEarth::inst_on_image_callback));
+}
+
+void
+RealEarthImageRequest::build_url(std::shared_ptr<RealEarthProduct>& product)
+{
+    addQuery("products", product->get_id());
+    Glib::ustring bound;
+    LocaleContext localectx(LC_NUMERIC);
+    if (localectx.set(LocaleContext::en_US)) {
+        bound = Glib::ustring::sprintf("%.3f,%.3f,%.3f,%.3f"
+                , m_south, m_west, m_north, m_east);
+    }
+    else {
+        bound = Glib::ustring::sprintf("%d,%d,%d,%d"
+            ,(int)m_south, (int)m_west, (int)m_north, (int)m_east);
+    }
+    #ifdef WEATHER_DEBUG
+    std::cout << "Bounds " << bound << std::endl;
+    #endif
+    addQuery("bounds", bound);
+    std::vector<Glib::ustring> times = product->get_times();
+    if (!times.empty()) {
+        Glib::ustring time = times[times.size()-1];
+        addQuery("time", time);
+    }
+    addQuery("width", Glib::ustring::sprintf("%d", m_pixWidth));
+    addQuery("height", Glib::ustring::sprintf("%d", m_pixWidth));
+}
+
+// undo mercator mapping (correctly named coordinate transform) of pix.
+//  By scanning every linear latitude, transform it into a index for the mercator map
+//  and copying this row into weather_pix at the right position.
+//  This expects tiles aligned to equator.
+void
+RealEarthImageRequest::mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pixbuf>& weather_pix)
+{
+    // create a compatible pixmap to clear a requested area
+    Glib::RefPtr<Gdk::Pixbuf> clearPix = Gdk::Pixbuf::create(weather_pix->get_colorspace(), weather_pix->get_has_alpha(), weather_pix->get_bits_per_sample(), pix->get_width(), 1);
+    clearPix->fill(0x0);   // transp. black
+	bool isnorth = m_north > 0.0;
+    //std::string inname = Glib::ustring::sprintf("/home/rpf/in%f%f.png", std::floor(m_west), std::floor(m_north));
+    //pix->save(inname, "png");
+    double pix_height = pix->get_height();
+    MapProjectionMercator projectMercator;
+	double relMercOrigin = projectMercator.fromLinearLatitude((isnorth ? m_north : std::abs(m_south)) / 90.0);
+	for (int linY = 0; linY < pix_height; ++linY) {
+	    double realRelLat = isnorth
+		            ? ((double)(pix_height - linY) / pix_height)
+		            : ((double)linY / pix_height);
+	    double relMerc = projectMercator.fromLinearLatitude(realRelLat);
+	    if (relMerc < relMercOrigin) {
+            // relMerc is now right for a full view 0..90 -> 0-1
+            double relMercMap = isnorth
+                                ? 1.0 - (relMerc / relMercOrigin)
+                                : (relMerc / relMercOrigin);
+            // relMercMap adjust mercator to our map
+            int mercImageY = (int)(relMercMap * pix_height);
+            //std::cout << "Map "
+            //          << realRelLat
+            //          << " to " << relMerc
+            //          << " i " << y
+            //          << " to " << mercImageY
+            //          << std::endl;
+            if (mercImageY >= 0 && mercImageY < pix_height) {     // just to be safe (better than to crash)
+                pix->copy_area(0, mercImageY, pix->get_width(), 1, weather_pix, get_pixX(), get_pixY()+linY);
+            }
+            else {
+                std::cout << "Generated y " << mercImageY << " while mapping exceeded size " << pix->get_height() << std::endl;
+            }
+    	}
+        else {
+            clearPix->copy_area(0, 0, clearPix->get_width(), 1, weather_pix, get_pixX(), get_pixY()+linY);
+        }
+    }
+}
+
+int
+RealEarthImageRequest::get_pixX()
+{
+    return m_pixX;
+}
+
+int
+RealEarthImageRequest::get_pixY()
+{
+    return m_pixY;
+}
+
+
+RealEarthProduct::RealEarthProduct(JsonObject* obj)
+: WeatherProduct()
+, m_legend{}
+{
+    m_id = json_object_get_string_member(obj, "id");
+    m_dataid = json_object_get_string_member(obj, "dataid");
+    m_name = json_object_get_string_member(obj, "name");
+    m_description = json_object_get_string_member(obj, "description");
+    m_type = json_object_get_string_member(obj, "type");
+    m_outputtype = json_object_get_string_member(obj, "outputtype");
+    m_seedlatbound = json_object_get_double_member_with_default(obj, "seedlatbound", MAX_MERCATOR_LAT);
+    auto times = json_object_get_array_member(obj, "times");
+    guint len = json_array_get_length(times);
+    for (guint i = 0; i < len; ++i) {
+        Glib::ustring time = json_array_get_string_element(times, i);
+        if (!time.empty()) {
+            m_times.push_back(time);
+        }
+    }
+    m_westSouth.setLatitude(-m_seedlatbound);   // avoid querying extend as it doesn't reveal much
+    m_westSouth.setLongitude(-180.0);
+    m_eastNorth.setLatitude(m_seedlatbound);
+    m_eastNorth.setLongitude(180.0);
+}
+
+// info about it is displayable for us
+bool
+RealEarthProduct::is_displayable()
+{
+    return m_outputtype == "png24" && !m_times.empty();
+}
+
+// check if the given latest is the contained, if not is it added
+bool
+RealEarthProduct::is_latest(const Glib::ustring& latest)
+{
+    for (auto time : m_times) {
+        if (time == latest) {
+            return true;
+        }
+    }
+    m_times.push_back(latest);
+    return false;
+}
+
+/**
+ *  return time for latest
+ * @param dateTime set date&time to local for latest if possible
+ * @return true -> date&time was set, false -> something went wrong
+ */
+bool
+RealEarthProduct::latest(Glib::DateTime& dateTime)
+{
+    if (!m_times.empty()) {
+        Glib::ustring latest = m_times[m_times.size()-1];
+        Glib::ustring iso8601 = latest;
+        auto pos = iso8601.find(".");
+        if (pos == Glib::ustring::npos)  {
+            std::cout << "WeatherProduct::latest latest " << iso8601 << " no '.' found" << std::endl;
+        }
+        else {
+            iso8601.replace(pos, 1, "T"); // make it iso
+        }
+        auto utc = Glib::DateTime::create_from_iso8601(iso8601, Glib::TimeZone::create_utc());
+        if (utc) {
+            //std::cout << "RealEarthProduct::latest parsed " << iso8601 << " to utc " <<  utc.format("%F-%T") << std::endl;
+            dateTime = utc.to_local();
+            //std::cout << "RealEarthProduct::latest local " <<  dateTime.format("%F-%T") << std::endl;
+            return true;
+        }
+        else {
+            std::cout << "RealEarthProduct::latest latest " << iso8601 << " not parsed" << std::endl;
+        }
+    }
+    return false;
+}
+
+void
+RealEarthProduct::set_extent(JsonObject* entry)
+{
+    Glib::ustring north = json_object_get_string_member_with_default(entry, "north", "85");
+    Glib::ustring south = json_object_get_string_member_with_default(entry, "south", "-85");
+    Glib::ustring west = json_object_get_string_member_with_default(entry, "west", "-180");
+    Glib::ustring east = json_object_get_string_member_with_default(entry, "east", "180");
+    Glib::ustring width = json_object_get_string_member_with_default(entry, "width", "1024");
+    Glib::ustring height = json_object_get_string_member_with_default(entry, "height", "1024");
+    #ifdef WEATHER_DEBUG
+    std::cout << "WeatherProduct::set_extent str"
+              << " north " << north
+              << " south " << south
+              << " west " << west
+              << " east " << east
+              << " width " << width
+              << " height " << height
+              << std::endl;
+    #endif
+    m_eastNorth.parseLatitude(north);
+    m_eastNorth.parseLongitude(east);
+    m_westSouth.parseLatitude(south);
+    m_westSouth.parseLongitude(west);
+    m_extent_width = std::stoi(width);
+    m_extent_height = std::stoi(height);
+    #ifdef WEATHER_DEBUG
+    std::cout << "WeatherProduct::set_extent num"
+              << " north " << m_eastNorth.getLatitude()
+              << " south " << m_westSouth.getLatitude()
+              << " west " << m_westSouth.getLongitude()
+              << " east " << m_eastNorth.getLongitude()
+              << " width " << m_extent_width
+              << " height " << m_extent_height
+              << std::endl;
+    #endif
+}
+
+Glib::RefPtr<Gdk::Pixbuf>
+RealEarthProduct::get_legend() {
+    return m_legend;
+}
+
+void
+RealEarthProduct::set_legend(Glib::RefPtr<Gdk::Pixbuf>& legend) {
+    m_legend = legend;
+    m_signal_legend.emit(m_legend);
+}
 
 RealEarth::RealEarth(WeatherConsumer* consumer)
 : Weather(consumer)
@@ -36,7 +270,7 @@ RealEarth::RealEarth(WeatherConsumer* consumer)
 }
 
 void
-RealEarth::inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessage* message)
+RealEarth::inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message)
 {
     if (!error.empty()) {
         std::cout << "error capabilities " << error << std::endl;
@@ -59,10 +293,10 @@ RealEarth::inst_on_capabilities_callback(const Glib::ustring& error, int status,
         m_products.clear();
         for (guint i = 0; i < len; ++i) {
             JsonObject* jsProduct = parser.get_array_object(array, i);
-            auto product = std::make_shared<WeatherProduct>(jsProduct);
-            m_products.push_back(product);
+            auto product = std::make_shared<RealEarthProduct>(jsProduct);
+            add_product(product);
         }
-        m_consumer->weather_products_ready();
+        m_signal_products_completed.emit();
     }
     catch (const JsonException& ex) {
         char head[64];
@@ -74,9 +308,9 @@ RealEarth::inst_on_capabilities_callback(const Glib::ustring& error, int status,
 void
 RealEarth::capabilities()
 {
-    auto message = std::make_shared<SpoonMessage>(m_base_url, "api/products");
+    auto message = std::make_shared<SpoonMessageDirect>(get_base_url(), "api/products");
     message->addQuery("search", "global");
-    message->addQuery("timespan", "-6h");
+    message->addQuery("timespan", "-8h");
     message->signal_receive().connect(sigc::mem_fun(*this, &RealEarth::inst_on_capabilities_callback));
     #ifdef WEATHER_DEBUG
     std::cout << "Weather::capabilities"
@@ -87,7 +321,7 @@ RealEarth::capabilities()
 
 
 void
-RealEarth::inst_on_latest_callback(const Glib::ustring& error, int status, SpoonMessage* message)
+RealEarth::inst_on_latest_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message)
 {
     if (!error.empty()) {
         std::cout << "error latest " << error << std::endl;
@@ -131,46 +365,13 @@ RealEarth::inst_on_latest_callback(const Glib::ustring& error, int status, Spoon
 
 }
 
-void
-RealEarth::inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessage* message)
-{
-    if (!error.empty()) {
-        std::cout << "error image " << error << std::endl;
-        return;
-    }
-    if (status != SpoonMessage::OK) {
-        std::cout << "Error image response " << status << std::endl;
-        return;
-    }
-    auto data = message->get_bytes();
-    if (!data) {
-        std::cout << "Error image no data" << std::endl;
-        return;
-    }
-    #ifdef WEATHER_DEBUG
-    auto bytes = message->get_bytes();
-    std::cout << "Weather load len "
-              << bytes->size()
-              << std::endl << dump(bytes->get_data(), std::min(64u, bytes->size()))
-              << std::endl;
-    #endif
-    WeatherImageRequest* request = dynamic_cast<WeatherImageRequest*>(message);
-    if (request) {
-        if (m_consumer) {
-            m_consumer->weather_image_notify(*request);
-        }
-    }
-    else {
-        std::cout << "Could not reconstruct weather request" << std::endl;
-    }
-}
 
 // queue a latest request and if it not do a request (this is not useful for products that are not currently displayed!)
 void
 RealEarth::check_product(const Glib::ustring& weatherProductId)
 {
     if (!weatherProductId.empty() && !m_products.empty()) { // while not ready ignore request
-        auto product= std::make_shared<SpoonMessage>(m_base_url, "api/latest");
+        auto product= std::make_shared<SpoonMessageDirect>(get_base_url(), "api/latest");
         product->addQuery("products", weatherProductId);
         product->signal_receive().connect(sigc::mem_fun(*this, &RealEarth::inst_on_latest_callback));
         #ifdef WEATHER_DEBUG
@@ -182,7 +383,7 @@ RealEarth::check_product(const Glib::ustring& weatherProductId)
 }
 
 void
-RealEarth::inst_on_extend_callback(const Glib::ustring& error, int status, SpoonMessage* message)
+RealEarth::inst_on_extend_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message)
 {
     if (!error.empty()) {
         std::cout << "error extend " << error << std::endl;
@@ -208,7 +409,7 @@ RealEarth::inst_on_extend_callback(const Glib::ustring& error, int status, Spoon
             std::cout << "Weather::inst_on_extend_callback got"
                       <<  " item " <<  key << std::endl;
             #endif
-            auto prod = find_product(key);
+            auto prod = std::dynamic_pointer_cast<RealEarthProduct>(find_product(key));
             if (prod) {
                 prod->set_extent(entry);
             }
@@ -229,9 +430,9 @@ RealEarth::inst_on_extend_callback(const Glib::ustring& error, int status, Spoon
 }
 
 void
-RealEarth::get_extend(std::shared_ptr<WeatherProduct>& product)
+RealEarth::get_extend(std::shared_ptr<RealEarthProduct>& product)
 {
-    auto extend = std::make_shared<SpoonMessage>(m_base_url, "api/extents");
+    auto extend = std::make_shared<SpoonMessageDirect>(get_base_url(), "api/extents");
     extend->addQuery("products", product->get_id());
     extend->signal_receive().connect(sigc::mem_fun(*this, &RealEarth::inst_on_extend_callback));
     #ifdef WEATHER_DEBUG
@@ -240,116 +441,28 @@ RealEarth::get_extend(std::shared_ptr<WeatherProduct>& product)
     m_spoonSession.send(extend);
 }
 
-void
-RealEarth::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMessage* message, std::shared_ptr<WeatherProduct> product)
-{
-   if (!error.empty()) {
-        std::cout << "error legend " << error << std::endl;
-        return;
-    }
-    if (status != SpoonMessage::OK) {
-        std::cout << "Error legend response " << status << std::endl;
-        return;
-    }
-    auto data = message->get_bytes();
-    if (!data) {
-        std::cout << "Error legend no data" << std::endl;
-        return;
-    }
-    Glib::RefPtr<Gdk::PixbufLoader> loader = Gdk::PixbufLoader::create();
-    loader->write(data->get_data(), data->size());
-    loader->close();
-    if (loader->get_pixbuf()) {
-        auto pixbuf = loader->get_pixbuf();
-        #ifdef WEATHER_DEBUG
-        std::cout << "Loading legend pixbuf"
-                  << " chan " << pixbuf->get_n_channels()
-                  << " width " << pixbuf->get_width()
-                  << " height " << pixbuf->get_height()
-                  << std::endl;
-        #endif
-        if (product) {
-            product->set_legend(pixbuf);
-        }
-    }
-    else {
-        std::cout << "Error loading legend pixbuf" << std::endl;
-    }
-}
-
 Glib::RefPtr<Gdk::Pixbuf>
 RealEarth::get_legend(std::shared_ptr<WeatherProduct>& product)
 {
     Glib::RefPtr<Gdk::Pixbuf> legend = product->get_legend();
     if (!legend) {
-        auto legend = std::make_shared<SpoonMessage>(m_base_url, "api/legend");
-        legend->addQuery("products", product->get_id());
-        legend->signal_receive().connect(
-                sigc::bind<std::shared_ptr<WeatherProduct>>(
-                    sigc::mem_fun(*this, &RealEarth::inst_on_legend_callback), product));
-        #ifdef WEATHER_DEBUG
-        std::cout << "RealEarth::get_legend " << legend->get_url()  << std::endl;
-        #endif
-        m_spoonSession.send(legend);
+        auto earthProduct = std::dynamic_pointer_cast<RealEarthProduct>(product);
+        if (earthProduct) {
+            auto legend = std::make_shared<SpoonMessageDirect>(get_base_url(), "api/legend");
+            legend->addQuery("products", product->get_id());
+            legend->signal_receive().connect(
+                    sigc::bind<std::shared_ptr<RealEarthProduct>>(
+                        sigc::mem_fun(*this, &RealEarth::inst_on_legend_callback), earthProduct));
+            #ifdef WEATHER_DEBUG
+            std::cout << "RealEarth::get_legend " << legend->get_url()  << std::endl;
+            #endif
+            m_spoonSession.send(legend);
+        }
+        else {
+            std::cerr << "the passed instance for product was not of type RealEarthProduct" << std::endl;
+        }
     }
     return legend;
-}
-
-
-double
-RealEarth::normToRadians(double norm) {
-	return norm * M_PI_2;
-}
-
-// not much to project in this case
-double
-RealEarth::xAxisProjection(double input)
-{
-    double xm = input / 180.0;
-    return xm;
-}
-
-// do a spherical web-mercator projection
-// works with relative values 0..1
-double
-RealEarth::yAxisProjection(double input)
-{
-    double ym = std::log(std::tan(M_PI_4 + normToRadians(input) / 2.0));
-    return ym / M_PI;   // keep range 0...1
-}
-
-double
-RealEarth::yAxisUnProjection(double input)
-{
-    double yr = 2.0 * (std::atan(std::exp(input * M_PI)) -  M_PI_4);
-    return yr / (M_PI_2);   // keep range 0...1
-}
-
-std::string
-RealEarth::dump(const guint8 *data, gsize size)
-{
-    std::ostringstream out;
-    gsize offset = 0u;
-    while (offset < size) {
-        if (offset > 0u) {
-            out << std::endl;
-        }
-        out << std::hex << std::setw(4) << std::setfill('0') << offset << ":";
-        for (gsize i = 0; i < std::min(size-offset, (gsize)16u); ++i)  {
-            out << std::setw(2) << std::setfill('0') << (int)data[offset+i] << " ";
-        }
-        out << std::dec << std::setw(1) << " ";
-        for (gsize i = 0; i < std::min(size-offset, (gsize)16u); ++i)  {
-            if (data[offset+i] >= 32 && data[offset+i] < 127) {
-                out << data[offset+i];
-            }
-            else {
-                out << ".";
-            }
-        }
-        offset += 16u;
-    }
-    return out.str();
 }
 
 // example of the "C-way"
@@ -446,7 +559,7 @@ RealEarth::dump(const guint8 *data, gsize size)
 void
 RealEarth::request(const Glib::ustring& productId)
 {
-    std::shared_ptr<WeatherProduct> product = find_product(productId);
+    auto product = std::dynamic_pointer_cast<RealEarthProduct>(find_product(productId));
     if (!product) {
         return;
     }
@@ -466,51 +579,32 @@ RealEarth::request(const Glib::ustring& productId)
     int image_size2 = image_size / 2;
     // always query in four steps
     // as we reduced the number of requests send them all at once
-    auto requestWN = std::make_shared<WeatherImageRequest>(this
+    auto requestWN = std::make_shared<RealEarthImageRequest>(this
                 ,0.0, -180.0
                 ,product->get_extend_north(), 0.0
                 ,0, 0
                 ,image_size2, image_size2
                 ,product);
     m_spoonSession.send(requestWN);
-    auto requestWS = std::make_shared<WeatherImageRequest>(this
+    auto requestWS = std::make_shared<RealEarthImageRequest>(this
                 ,product->get_extend_south(), -180.0
                 ,0.0, 0.0
                 ,0, image_size2
                 ,image_size2, image_size2
                 ,product);
     m_spoonSession.send(requestWS);
-    auto requestEN = std::make_shared<WeatherImageRequest>(this
+    auto requestEN = std::make_shared<RealEarthImageRequest>(this
                 ,0.0, 0.0
                 ,product->get_extend_north(), 180.0
                 ,image_size2, 0
                 ,image_size2, image_size2
                 ,product);
     m_spoonSession.send(requestEN);
-    auto requestES = std::make_shared<WeatherImageRequest>(this
+    auto requestES = std::make_shared<RealEarthImageRequest>(this
                 ,product->get_extend_south(), 0.0
                 ,0.0, 180.0
                 ,image_size2, image_size2
                 ,image_size2, image_size2
                 ,product);
     m_spoonSession.send(requestES);
-}
-
-std::shared_ptr<WeatherProduct>
-RealEarth::find_product(const Glib::ustring& weatherProductId)
-{
-    //std::cout << "RealEarth::find_product"
-    //      << " prod " << weatherProductId
-    //      << " products " << m_products.size() << std::endl;
-    if (!weatherProductId.empty()) {
-        for (auto prod : m_products) {
-            if (prod->get_id() == weatherProductId) {
-                return prod;
-            }
-        }
-        if (!m_products.empty()) {
-            std::cout << "RealEarth::find_product the requested product " << weatherProductId << " was not found!" << std::endl;
-        }
-    }
-    return nullptr;
 }

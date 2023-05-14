@@ -26,6 +26,12 @@ libgeodata_la_SOURCES = \
 	JsonHelper.cpp \
 	Weather.cpp \
 	RealEarth.cpp \
+	WebMapService.cpp \
+	EumetSat.cpp \
+	DeutscherWetterDienst.cpp \
+	GeoCoordinate.cpp \
+	MapProjection.cpp \
+	LocaleContext.cpp \
 	GeoJson.cpp
 
 libgeodata_la_LIBADD =  \
@@ -43,6 +49,12 @@ pkginclude_HEADERS = \
 	JsonHelper.hpp \
 	Weather.hpp \
 	RealEarth.hpp \
+	WebMapService.hpp \
+	EumetSat.hpp \
+	DeutscherWetterDienst.hpp \
+	GeoCoordinate.hpp \
+	MapProjection.hpp \
+	LocaleContext.hpp \
 	GeoJson.hpp
 
 pkgconfigdir = $(libdir)/pkgconfig

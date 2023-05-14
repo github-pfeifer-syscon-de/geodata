@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "Spoon.hpp"
+#include "GeoCoordinate.hpp"
 
 #undef WEATHER_DEBUG
 
@@ -33,7 +34,6 @@ class WeatherProduct;
 class WeatherConsumer
 {
 public:
-    virtual void weather_products_ready() = 0;
     virtual void weather_image_notify(WeatherImageRequest& request) = 0;
     virtual int get_weather_image_size() = 0;
 };
@@ -43,73 +43,44 @@ class WeatherProduct;
 
 
 class WeatherImageRequest
-: public SpoonMessage
+: public SpoonMessageStream
 {
 public:
-    WeatherImageRequest(Weather* weather, double south, double west, double north, double east
-            , int pixX, int pixY, int pixWidth, int pixHeight
-            , std::shared_ptr<WeatherProduct>& product);
-    WeatherImageRequest(const WeatherImageRequest& other) = default;
+    WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path);
     virtual ~WeatherImageRequest() = default;
-    Weather* get_weather() {
-        return m_weather;
-    }
-    int get_pixX();
-    int get_pixY();
     Glib::RefPtr<Gdk::Pixbuf> get_pixbuf();
-    void mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pixbuf>& weather);
-protected:
-    void build_url(std::shared_ptr<WeatherProduct>& product);
-private:
-    Weather* m_weather;
-    double m_south;
-    double m_west;
-    double m_north;
-    double m_east;
-    int m_pixX;
-    int m_pixY;
-    int m_pixWidth;
-    int m_pixHeight;
+    virtual void mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pixbuf>& weather) = 0;
+
 };
 
 class WeatherProduct
 {
 public:
-    WeatherProduct(JsonObject* obj);
+    WeatherProduct() = default;
     virtual ~WeatherProduct() = default;
-    Glib::ustring get_id() {
-        return m_id;
-    }
-    Glib::ustring get_dataid() {
-        return m_dataid;
-    }
-    Glib::ustring get_name() {
-        return m_name;
-    }
-    Glib::ustring get_description() {
-        return m_description;
-    }
-    std::vector<Glib::ustring> get_times() {
-        return m_times;
-    }
-    double get_seedlatbound() {
-        return m_seedlatbound;
-    }
-    bool is_displayable();
-    bool is_latest(const Glib::ustring& latest);
-    bool latest(Glib::DateTime& datetime);
-    void set_extent(JsonObject* entry);
+
+    Glib::ustring get_id();
+    Glib::ustring get_name();
+
+    virtual std::vector<Glib::ustring> get_times() = 0;
+    virtual bool is_latest(const Glib::ustring& latest) = 0;
+    virtual Glib::RefPtr<Gdk::Pixbuf> get_legend() = 0;
+    virtual Glib::ustring get_description() = 0;
+    virtual bool latest(Glib::DateTime& datetime) = 0;
+    virtual bool is_displayable() = 0;
+    virtual void set_legend(Glib::RefPtr<Gdk::Pixbuf>& pixbuf) = 0;
+
     double  get_extend_north() {
-        return std::min(m_extent_north, m_seedlatbound);  // some images report 90 and can't handle it afterwards as it seems
+        return std::min(m_eastNorth.getLatitude(), m_seedlatbound);  // some images report 90 and can't handle it afterwards as it seems
     }
     double  get_extend_south() {
-        return std::max(m_extent_south, -m_seedlatbound);
+        return std::max(m_westSouth.getLatitude(), -m_seedlatbound);
     }
-    double get_extent_west() {
-        return m_extent_west;
+    double get_extend_west() {
+        return m_westSouth.getLongitude();
     }
-    double get_extent_east() {
-        return m_extent_east;
+    double get_extend_east() {
+        return m_eastNorth.getLongitude();
     }
     int get_extent_width() {
         return m_extent_width;
@@ -117,30 +88,28 @@ public:
     int get_extent_height() {
         return m_extent_height;
     }
-    Glib::RefPtr<Gdk::Pixbuf> get_legend();
-    void set_legend(const Glib::RefPtr<Gdk::Pixbuf>& legend);
+    GeoCoordinate getWestSouth() {
+        return m_westSouth;
+    }
+    GeoCoordinate getEastNorth() {
+        return m_eastNorth;
+    }
+
+    static constexpr auto MAX_MERCATOR_LAT{85.0};   // beyond this simple/web-mercator mapping isn't useful
     using type_signal_legend = sigc::signal<void(Glib::RefPtr<Gdk::Pixbuf>)>;
     type_signal_legend signal_legend();
 protected:
     type_signal_legend m_signal_legend;
 
-private:
     Glib::ustring m_id;
-    Glib::ustring m_dataid; // this is the base e.g. globalir for all ir based images
     Glib::ustring m_name;
-    Glib::ustring m_description;
-    std::vector<Glib::ustring> m_times;
-    Glib::ustring m_type;       // this is the representation e.g. "raster" for images, "shape" for symbols
-    Glib::ustring m_outputtype; // png24 for íamges
-    double m_extent_north{0.0};
-    double m_extent_south{0.0};
-    double m_extent_west{0.0};
-    double m_extent_east{0.0};
+    GeoCoordinate m_westSouth;
+    GeoCoordinate m_eastNorth;
     int m_extent_width{0};
     int m_extent_height{0};
-    double m_seedlatbound;      // e.g. 85 for images limited to latitude north/south
-    Glib::RefPtr<Gdk::Pixbuf> m_legend;
-    static constexpr double MAX_MERCATOR_LAT = 85.0;   // beyond this simple/web-mercator mapping isn't useful
+    double m_seedlatbound = MAX_MERCATOR_LAT; // e.g. 85 for images limited to latitude north/south
+
+private:
 };
 
 
@@ -151,22 +120,25 @@ public:
     Weather(WeatherConsumer* consumer);
     virtual ~Weather() = default;
     WeatherConsumer* get_consumer();
-    virtual double yAxisProjection(double input); // needs to be overridden for non linear mappings
 
     static std::vector<Glib::ustring> get_services();
     static std::shared_ptr<Weather> create_service(const Glib::ustring &name, WeatherConsumer* consumer);
-    virtual Glib::ustring get_base_url() = 0;
-    virtual void inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessage* message) = 0;
-    virtual void inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessage* message) = 0;
     virtual void check_product(const Glib::ustring& weatherProductId) = 0;
     virtual void capabilities() = 0;
     virtual void request(const Glib::ustring& productId) = 0;
-    virtual std::shared_ptr<WeatherProduct> find_product(const Glib::ustring& weatherProductId) = 0;
-    virtual std::vector<std::shared_ptr<WeatherProduct>> get_products() = 0;
     virtual Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product) = 0;
+    void inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessageStream* message);
+    void inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message, std::shared_ptr<WeatherProduct> product);
+    std::vector<std::shared_ptr<WeatherProduct>> get_products();
+    std::shared_ptr<WeatherProduct> find_product(const Glib::ustring& productId);
+    void add_product(std::shared_ptr<WeatherProduct> product);
+    std::string dump(const guint8 *data, gsize size);
 
-
+    using type_signal_products_completed = sigc::signal<void()>;
+    type_signal_products_completed signal_products_completed();
 protected:
+    type_signal_products_completed m_signal_products_completed;
     WeatherConsumer* m_consumer;
-
+    std::map<Glib::ustring, std::shared_ptr<WeatherProduct>> m_products;
 };
+

@@ -23,45 +23,104 @@
 
 #include "Weather.hpp"
 
+class RealEarth;
+class RealEarthProduct;
 
-class RealEarth : public Weather
+class RealEarthImageRequest
+: public WeatherImageRequest
+{
+public:
+    RealEarthImageRequest(RealEarth* weather, double south, double west, double north, double east
+            , int pixX, int pixY, int pixWidth, int pixHeight
+            , std::shared_ptr<RealEarthProduct>& product);
+    virtual ~RealEarthImageRequest() = default;
+    RealEarth* get_weather() {
+        return m_realEarth;
+    }
+    int get_pixX();
+    int get_pixY();
+    void mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pixbuf>& weather) override;
+protected:
+    void build_url(std::shared_ptr<RealEarthProduct>& product);
+private:
+    RealEarth* m_realEarth;
+    double m_south;
+    double m_west;
+    double m_north;
+    double m_east;
+    int m_pixX;
+    int m_pixY;
+    int m_pixWidth;
+    int m_pixHeight;
+};
+
+
+class RealEarthProduct
+: public WeatherProduct
+{
+public:
+    RealEarthProduct(JsonObject* obj);
+    virtual ~RealEarthProduct() = default;
+
+    Glib::ustring get_dataid() {
+        return m_dataid;
+    }
+    Glib::ustring get_description() override {
+        return m_description;
+    }
+    std::vector<Glib::ustring> get_times() override
+    {
+        return m_times;
+    }
+    double get_seedlatbound() {
+        return m_seedlatbound;
+    }
+    bool is_displayable() override;
+    bool is_latest(const Glib::ustring& latest) override;
+    bool latest(Glib::DateTime& datetime) override;
+    void set_extent(JsonObject* entry);
+
+    Glib::RefPtr<Gdk::Pixbuf> get_legend() override;
+    void set_legend(Glib::RefPtr<Gdk::Pixbuf>& legend) override;
+
+private:
+    Glib::ustring m_dataid; // this is the base e.g. globalir for all ir based images
+    Glib::ustring m_description;
+    std::vector<Glib::ustring> m_times;
+    Glib::ustring m_type;       // this is the representation e.g. "raster" for images, "shape" for symbols
+    Glib::ustring m_outputtype; // png24 for íamges
+    Glib::RefPtr<Gdk::Pixbuf> m_legend;
+
+};
+
+class RealEarth
+: public Weather
 {
 public:
     RealEarth(WeatherConsumer* consumer);
     virtual ~RealEarth() = default;
 
-    void capabilities();
-    void request(const Glib::ustring& productId);
+    void capabilities() override;
+    void request(const Glib::ustring& productId) override;
 
-    Glib::ustring get_base_url() override {
+    Glib::ustring get_base_url() {
         return m_base_url;
     }
-    std::vector<std::shared_ptr<WeatherProduct>> get_products() {
-        return m_products;
-    }
-    std::shared_ptr<WeatherProduct> find_product(const Glib::ustring& weatherProductId);
-    void check_product(const Glib::ustring& weatherProductId);
-    double yAxisProjection(double input) override;
-    double yAxisUnProjection(double input);
+    void check_product(const Glib::ustring& weatherProductId) override;
     void send(WeatherImageRequest& request, std::shared_ptr<WeatherProduct>& product);
-    std::string dump(const guint8 *data, gsize size);
-    void inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessage* message);
-    void inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessage* message) override;
+    void inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message);
     Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product);
 
     static constexpr auto NAME{"RealEarth"};
 protected:
-    void inst_on_latest_callback(const Glib::ustring& error, int status, SpoonMessage* message);
-    void inst_on_extend_callback(const Glib::ustring& error, int status, SpoonMessage* message);
-    void get_extend(std::shared_ptr<WeatherProduct>& product);
-    void inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMessage* message, std::shared_ptr<WeatherProduct> product);
-    double normToRadians(double norm);
-    double xAxisProjection(double input);
+    void inst_on_latest_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message);
+    void inst_on_extend_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message);
+    void get_extend(std::shared_ptr<RealEarthProduct>& product);
 
 private:
-    SpoonSession m_spoonSession{"map private use "};
-    static const char* m_base_url;
-    std::vector<std::shared_ptr<WeatherProduct>> m_products;
+    SpoonSession m_spoonSession;
+    static constexpr auto m_base_url{"https://realearth.ssec.wisc.edu/"};
+
     Glib::ustring queued_product_request;
 };
 
