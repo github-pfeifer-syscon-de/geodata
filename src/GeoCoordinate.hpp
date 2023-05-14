@@ -44,6 +44,8 @@ public:
     Glib::ustring printValue(char separator = ',');
     static CoordRefSystem parseRefSystem(const Glib::ustring& ref);
     static Glib::ustring identRefSystem(CoordRefSystem coordRefSys);
+    static bool is_latitude_first(CoordRefSystem coordRef);
+
 protected:
     static constexpr auto CRS_84{"CRS:84"};
     static constexpr auto EPSG_4326{"EPSG:4326"};

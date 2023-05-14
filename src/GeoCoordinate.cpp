@@ -43,22 +43,28 @@ GeoCoordinate::parseLongitude(const Glib::ustring& lon)
     return m_longitude;
 }
 
+bool
+GeoCoordinate::is_latitude_first(CoordRefSystem coordRef)
+{
+    bool latitude_first = false;
+    if (coordRef == CoordRefSystem::EPSG_4326) {
+        latitude_first = true;
+    }
+    return latitude_first;
+}
+
 Glib::ustring
 GeoCoordinate::printValue(char separator)
 {
     double first;
     double second;
-    switch (m_coordRef) {
-    case CoordRefSystem::EPSG_4326:
+    if (is_latitude_first(m_coordRef)) {
         first = m_latitude;
         second = m_longitude;
-        break;
-    case CoordRefSystem::CRS_84:
-    case CoordRefSystem::None:
-    default:
+    }
+    else {
         first =  m_longitude;
         second = m_latitude;
-        break;
     }
     LocaleContext localectx(LC_NUMERIC);
     if (localectx.set(LocaleContext::en_US)) {

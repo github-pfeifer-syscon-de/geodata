@@ -68,7 +68,7 @@ public:
     Glib::ustring get_description() override {
         return m_description;
     }
-    std::vector<Glib::ustring> get_times() override
+    std::vector<Glib::ustring> get_times()
     {
         return m_times;
     }
@@ -76,7 +76,7 @@ public:
         return m_seedlatbound;
     }
     bool is_displayable() override;
-    bool is_latest(const Glib::ustring& latest) override;
+    bool is_latest(const Glib::ustring& latest);
     bool latest(Glib::DateTime& datetime) override;
     void set_extent(JsonObject* entry);
 

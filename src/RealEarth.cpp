@@ -349,7 +349,7 @@ RealEarth::inst_on_latest_callback(const Glib::ustring& error, int status, Spoon
                       <<  " item " <<  key
                       <<  " latest " << latest << std::endl;
             #endif
-            auto prod = find_product(key);
+            auto prod = std::dynamic_pointer_cast<RealEarthProduct>(find_product(key));
             if (prod) {
                 if (!prod->is_latest(latest)) {
                     request(key);  // as the given latest is not latest queue a request

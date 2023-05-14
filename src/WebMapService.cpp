@@ -51,13 +51,11 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     addQuery("HEIGHT", Glib::ustring::sprintf("%d", m_pixHeight));
     addQuery("WIDTH", Glib::ustring::sprintf("%d", m_pixWidth));
     addQuery("TRANSPARENT", "TRUE");    // prefer transparent
-    if (!product->get_times().empty()) {
-        auto times = product->get_times();
-        auto latest = times[times.size()-1];
+    if (!product->get_latest().empty()) {
         #ifdef WEATHER_DEBUG
-        std::cout << "using time " << latest << std::endl;
+        std::cout << "using time " << product->get_latest() << std::endl;
         #endif
-        addQuery("TIME", latest);
+        addQuery("TIME", product->get_latest());
     }
     Glib::ustring bound = Glib::ustring::sprintf("%s,%s", m_westSouth.printValue(','), m_eastNorth.printValue(','));
     #ifdef WEATHER_DEBUG
@@ -167,11 +165,12 @@ WebMapProduct::start_element(Glib::Markup::ParseContext& context,
          && maxx != attributes.end()
          && miny != attributes.end()
          && maxy != attributes.end()) {
-            m_westSouth.parseLongitude(minx->second);
-            m_westSouth.parseLatitude(miny->second);
+            bool latFirst = GeoCoordinate::is_latitude_first(getCoordRefSystem());
+            m_westSouth.parseLongitude(latFirst ? miny->second : minx->second);
+            m_westSouth.parseLatitude(latFirst ? minx->second : miny->second);
             m_westSouth.setCoordRefSystem(getCoordRefSystem());
-            m_eastNorth.parseLongitude(maxx->second);
-            m_eastNorth.parseLatitude(maxy->second);
+            m_eastNorth.parseLongitude(latFirst ? maxy->second : maxx->second);
+            m_eastNorth.parseLatitude(latFirst ? maxx->second : maxy->second);
             m_eastNorth.setCoordRefSystem(getCoordRefSystem());
         }
         m_context = ParseContext::BoundingBox;
@@ -183,7 +182,7 @@ WebMapProduct::start_element(Glib::Markup::ParseContext& context,
             auto def = attributes.find("default");
             if (def != attributes.end()
              && def->second != "current") {
-                m_times.push_back(def->second);
+                // prefere text
             }
         }
         m_context = ParseContext::Dimension;
@@ -386,10 +385,85 @@ WebMapProduct::parseDimension(const Glib::ustring& text)
         m_timeDimStart = parts[0];
         m_timeDimEnd = parts[1];
         m_timeDimPeriod = parts[2];
-        if (m_times.empty()) {
-            m_times.push_back(m_timeDimEnd);
+        m_timePeriodSec = periodSeconds(m_timeDimPeriod);
+        #ifdef WEATHER_DEBUG
+        std::cout << "WebMapProduct::parseDimension "
+                  << get_id()
+                  << " got " << text
+                  << " end " << m_timeDimEnd
+                  << " dim " << m_timeDimPeriod
+                  << " period " << m_timePeriodSec << "s"
+                  << std::endl;
+        #endif
+    }
+}
+
+/*
+D.3 periods
+An ISO 8601 Period is used to indicate the time resolution of the available data. The ISO 8601 format for
+representing a period of time is used to represent the resolution: Designator P (for Period), number of years Y,
+months M, days D, time designator T, number of hours H, minutes M, seconds S. Unneeded elements may be
+omitted.
+EXAMPLE 1 P1Y — 1 year
+EXAMPLE 2 P1M10D — 1 month plus 10 days
+EXAMPLE 3 PT2H — 2 hours
+EXAMPLE 4 PT1.5S — 1.5 seconds
+ * but no one elaborates on just P ...(when we guess from end that is ~30min behind now, what just may be delay, no live images :( )
+*/
+uint64_t
+WebMapProduct::periodSeconds(const Glib::ustring& timeDimPeriod)
+{
+    uint64_t timePeriodSec{0};
+    int val = 0;
+    bool time = false;
+    for (uint32_t i = 0; i < timeDimPeriod.size(); ++i) {
+        gunichar c = timeDimPeriod.at(i);
+        if (i == 0 && c != 'P') {
+            break;
+        }
+        else {
+            if (c == 'T') {
+                time = true;
+            }
+            else {
+                if (g_unichar_isdigit(c)) {    // wont recognize decimal
+                    val = val * 10 + g_unichar_xdigit_value(c);
+                }
+                else if (!time) {
+                    if (c == 'D') {
+                        timePeriodSec += val * 24 * 60 * 60;
+                        val = 0;
+                    }
+                    else if (c == 'M') {  // ~ estimate
+                        timePeriodSec += val * 30 * 24 * 60 * 60;
+                        val = 0;
+                    }
+                    else if (c == 'Y') {  // ~ estimate
+                        timePeriodSec += val  * 364 * 24 * 60 * 60;
+                        val = 0;
+                    }
+                }
+                else {
+                    if (c == 'H') {
+                        timePeriodSec += val * 60 * 60;
+                        val = 0;
+                    }
+                    else if (c == 'M') {
+                        timePeriodSec += val * 60;
+                        val = 0;
+                    }
+                    else if (c == 'S') {
+                        timePeriodSec += val;
+                        val = 0;
+                    }
+                }
+            }
         }
     }
+    if (timePeriodSec < MIN_TIME_PERIOD_SEC) {
+        timePeriodSec = MIN_TIME_PERIOD_SEC;
+    }
+    return timePeriodSec;
 }
 
 bool
@@ -399,17 +473,32 @@ WebMapProduct::is_displayable()
     return displayable;
 }
 
-
-std::vector<Glib::ustring>
-WebMapProduct::get_times()
-{
-    return m_times;
-}
-
 bool
-WebMapProduct::is_latest(const Glib::ustring& latest)
+WebMapProduct::is_latest()
 {
-    return true;    // dont have any
+    if (!m_timeDimEnd.empty()) {
+        auto utcLatest = Glib::DateTime::create_from_iso8601(m_timeDimEnd, Glib::TimeZone::create_utc());
+        if (utcLatest) {
+            utcLatest = utcLatest.add_seconds(m_timePeriodSec);
+            auto now = Glib::DateTime::create_now_utc();
+            now = now.add_seconds(-TIME_DELAY_SEC); // compare with past as service introduce delay
+            #ifdef WEATHER_DEBUG
+            std::cout << "WebMapProduct::is_latest "
+                      << get_id()
+                      << " period " << m_timePeriodSec
+                      << " dimEnd " << m_timeDimEnd
+                      << " latest " << utcLatest.format_iso8601()
+                      << " now " << now.format_iso8601()
+                      << " cmp " << now.compare(utcLatest)
+                      << std::endl;
+            #endif
+            if (now.compare(utcLatest) >= 0) {   // we passed the expected time
+                m_timeDimEnd = utcLatest.format_iso8601();
+                return false;
+            }
+        }
+    }
+    return true;    // cant tell
 }
 
 Glib::RefPtr<Gdk::Pixbuf>
@@ -428,9 +517,8 @@ WebMapProduct::set_legend(Glib::RefPtr<Gdk::Pixbuf>& legendImage)
 bool
 WebMapProduct::latest(Glib::DateTime& dateTime)
 {
-   if (!m_times.empty()) {
-        Glib::ustring latest = m_times[m_times.size()-1];
-        Glib::ustring iso8601 = latest;
+   if (!m_timeDimEnd.empty()) {
+        Glib::ustring iso8601 = m_timeDimEnd;
         auto utc = Glib::DateTime::create_from_iso8601(iso8601, Glib::TimeZone::create_utc());
         if (utc) {
             //std::cout << "RealEarthProduct::latest parsed " << iso8601 << " to utc " <<  utc.format("%F-%T") << std::endl;
@@ -585,7 +673,16 @@ WebMapService::request(const Glib::ustring& productId)
 void
 WebMapService::check_product(const Glib::ustring& weatherProductId)
 {
-    // find a way to check if we are up to date
+    if (!weatherProductId.empty() && !m_products.empty()) {
+        auto wproduct = find_product(weatherProductId);
+        auto product = std::dynamic_pointer_cast<WebMapProduct>(wproduct);
+        if (product && !product->is_latest()) {
+            #ifdef WEATHER_DEBUG
+            std::cout << "WebMapService::check_product requested" << std::endl;
+            #endif
+            request(weatherProductId);
+        }
+    }
 }
 
 Glib::RefPtr<Gdk::Pixbuf>

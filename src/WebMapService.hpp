@@ -128,8 +128,9 @@ public:
     void text(Glib::Markup::ParseContext& context,
         const Glib::ustring& text);
 
-    std::vector<Glib::ustring> get_times() override;
-    bool is_latest(const Glib::ustring& latest) override;
+    Glib::ustring get_latest() {
+        return m_timeDimEnd;
+    }
     Glib::RefPtr<Gdk::Pixbuf> get_legend() override;
     void set_legend(Glib::RefPtr<Gdk::Pixbuf>& legend) override;
     Glib::ustring get_description() override;
@@ -137,8 +138,12 @@ public:
     bool is_displayable() override;
     Glib::ustring get_legend_url();
     CoordRefSystem getCoordRefSystem();
-    void parseDimension(const Glib::ustring& text);
+    bool is_latest();
+
 private:
+    void parseDimension(const Glib::ustring& text);
+    uint64_t periodSeconds(const Glib::ustring& timeDimPeriod);
+
     Glib::ustring m_abstract;
     Glib::ustring m_keywords;
     CoordRefSystem m_crs{CoordRefSystem::None};
@@ -146,13 +151,15 @@ private:
     Glib::ustring m_timeDimStart;
     Glib::ustring m_timeDimEnd;
     Glib::ustring m_timeDimPeriod;
-    std::vector<Glib::ustring> m_times;
+    static constexpr int64_t MIN_TIME_PERIOD_SEC = 5*60;
+    static constexpr int64_t TIME_DELAY_SEC = 30*60;
+    uint64_t m_timePeriodSec{MIN_TIME_PERIOD_SEC};
     ParseContext m_context{ParseContext::None};
     std::stack<ParseContext>  m_parseLevel;
     std::vector<Glib::ustring> m_legends;
     Glib::RefPtr<Gdk::Pixbuf> m_legendImage;
     Glib::ustring m_LastLegendWidth;
-    WebMapService * m_webMapService;
+    WebMapService* m_webMapService;
 };
 
 class WebMapService

@@ -62,8 +62,6 @@ public:
     Glib::ustring get_id();
     Glib::ustring get_name();
 
-    virtual std::vector<Glib::ustring> get_times() = 0;
-    virtual bool is_latest(const Glib::ustring& latest) = 0;
     virtual Glib::RefPtr<Gdk::Pixbuf> get_legend() = 0;
     virtual Glib::ustring get_description() = 0;
     virtual bool latest(Glib::DateTime& datetime) = 0;
