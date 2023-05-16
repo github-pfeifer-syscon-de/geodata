@@ -764,7 +764,7 @@ NXMLParser::replaceAll(const Glib::ustring& text, const Glib::ustring& replace, 
 {
     Glib::ustring ret = text;
     size_t pos = 0;
-    while ((pos = ret.find(replace, pos)) != std::string::npos) {
+    while ((pos = ret.find(replace, pos)) != Glib::ustring::npos) {
          ret.replace(pos, replace.length(), with);
          pos += with.length();
     }
