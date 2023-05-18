@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <glibmm.h>
 #include <GenericGlmCompat.hpp> // providers pi constants for windows
 #include <cmath>
 
