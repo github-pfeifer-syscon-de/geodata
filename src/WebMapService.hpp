@@ -31,7 +31,7 @@ class WebMapImageRequest
 {
 public:
     WebMapImageRequest(WebMapService* webMapService
-        , GeoCoordinate& westSouth, GeoCoordinate& eastNorth
+        , const GeoBounds& bounds
         , int pixX, int pixY, int pixWidth, int pixHeight
         , std::shared_ptr<WebMapProduct>& product);
     virtual ~WebMapImageRequest() = default;
@@ -39,8 +39,7 @@ public:
 
 private:
     WebMapService *m_webMapService;
-    GeoCoordinate m_westSouth;
-    GeoCoordinate m_eastNorth;
+    GeoBounds m_bounds;
     int m_pixX;
     int m_pixY;
     int m_pixWidth;

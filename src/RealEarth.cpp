@@ -157,10 +157,8 @@ RealEarthProduct::RealEarthProduct(JsonObject* obj)
             m_times.push_back(time);
         }
     }
-    m_westSouth.setLatitude(-m_seedlatbound);   // avoid querying extend as it doesn't reveal much
-    m_westSouth.setLongitude(-180.0);
-    m_eastNorth.setLatitude(m_seedlatbound);
-    m_eastNorth.setLongitude(180.0);
+    GeoBounds bounds{-180.0, -m_seedlatbound, 180.0, m_seedlatbound, CoordRefSystem::CRS_84};
+    m_bounds = bounds;   // avoid querying extend as it doesn't reveal much
 }
 
 // info about it is displayable for us
@@ -234,18 +232,17 @@ RealEarthProduct::set_extent(JsonObject* entry)
               << " height " << height
               << std::endl;
     #endif
-    m_eastNorth.parseLatitude(north);
-    m_eastNorth.parseLongitude(east);
-    m_westSouth.parseLatitude(south);
-    m_westSouth.parseLongitude(west);
+    m_bounds.getEastNorth().parseLatitude(north);
+    m_bounds.getEastNorth().parseLongitude(east);
+    m_bounds.getEastNorth().setCoordRefSystem(CoordRefSystem::CRS_84);
+    m_bounds.getWestSouth().parseLatitude(south);
+    m_bounds.getWestSouth().parseLongitude(west);
+    m_bounds.getWestSouth().setCoordRefSystem(CoordRefSystem::CRS_84);
     m_extent_width = std::stoi(width);
     m_extent_height = std::stoi(height);
     #ifdef WEATHER_DEBUG
     std::cout << "WeatherProduct::set_extent num"
-              << " north " << m_eastNorth.getLatitude()
-              << " south " << m_westSouth.getLatitude()
-              << " west " << m_westSouth.getLongitude()
-              << " east " << m_eastNorth.getLongitude()
+              << " bounds (eswn) " << m_bounds.printValue()
               << " width " << m_extent_width
               << " height " << m_extent_height
               << std::endl;

@@ -26,7 +26,7 @@
 #include "Spoon.hpp"
 #include "GeoCoordinate.hpp"
 
-#undef WEATHER_DEBUG
+#define WEATHER_DEBUG
 
 class WeatherImageRequest;
 class WeatherProduct;
@@ -68,18 +68,6 @@ public:
     virtual bool is_displayable() = 0;
     virtual void set_legend(Glib::RefPtr<Gdk::Pixbuf>& pixbuf) = 0;
 
-    double  get_extend_north() {
-        return std::min(m_eastNorth.getLatitude(), m_seedlatbound);  // some images report 90 and can't handle it afterwards as it seems
-    }
-    double  get_extend_south() {
-        return std::max(m_westSouth.getLatitude(), -m_seedlatbound);
-    }
-    double get_extend_west() {
-        return m_westSouth.getLongitude();
-    }
-    double get_extend_east() {
-        return m_eastNorth.getLongitude();
-    }
     int get_extent_width() {
         return m_extent_width;
     }
@@ -87,10 +75,13 @@ public:
         return m_extent_height;
     }
     GeoCoordinate getWestSouth() {
-        return m_westSouth;
+        return m_bounds.getWestSouth();
     }
     GeoCoordinate getEastNorth() {
-        return m_eastNorth;
+        return m_bounds.getEastNorth();
+    }
+    GeoBounds getBounds() {
+        return m_bounds;
     }
 
     static constexpr auto MAX_MERCATOR_LAT{85.0};   // beyond this simple/web-mercator mapping isn't useful
@@ -101,8 +92,7 @@ protected:
 
     Glib::ustring m_id;
     Glib::ustring m_name;
-    GeoCoordinate m_westSouth;
-    GeoCoordinate m_eastNorth;
+    GeoBounds m_bounds;
     int m_extent_width{0};
     int m_extent_height{0};
     double m_seedlatbound = MAX_MERCATOR_LAT; // e.g. 85 for images limited to latitude north/south

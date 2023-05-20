@@ -30,13 +30,12 @@
 // http://portal.opengeospatial.org/files/?artifact_id=14416
 
 WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
-        , GeoCoordinate& westSouth, GeoCoordinate& eastNorth
+        , const GeoBounds& bounds
         , int pixX, int pixY, int pixWidth, int pixHeight
         , std::shared_ptr<WebMapProduct>& product)
 : WeatherImageRequest(webMapService->get_base_url(), webMapService->get_path())
 , m_webMapService{webMapService}
-, m_westSouth{westSouth}
-, m_eastNorth{eastNorth}
+, m_bounds{bounds}
 , m_pixX{pixX}
 , m_pixY{pixY}
 , m_pixWidth{pixWidth}
@@ -46,7 +45,7 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     addQuery("version", "1.3.0");
     addQuery("REQUEST", "GetMap");
     addQuery("LAYERS", product->get_id());
-    addQuery("CRS", GeoCoordinate::identRefSystem(product->getCoordRefSystem()));
+    addQuery("CRS", product->getCoordRefSystem().identifier());
     addQuery("FORMAT", "image/png");
     addQuery("HEIGHT", Glib::ustring::sprintf("%d", m_pixHeight));
     addQuery("WIDTH", Glib::ustring::sprintf("%d", m_pixWidth));
@@ -57,14 +56,14 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
         #endif
         addQuery("TIME", product->get_latest());
     }
-    Glib::ustring bound = Glib::ustring::sprintf("%s,%s", m_westSouth.printValue(','), m_eastNorth.printValue(','));
+    Glib::ustring bound = m_bounds.printValue(',');
     #ifdef WEATHER_DEBUG
-    std::cout << "m_westSouth " << m_westSouth.getLongitude()
-              << ", " << m_westSouth.getLatitude()
-              << " " << GeoCoordinate::identRefSystem(m_westSouth.getCoordRefSystem()) << std::endl;
-    std::cout << "m_eastNorth " << m_eastNorth.getLongitude()
-              << ", " << m_eastNorth.getLatitude()
-              << " " << GeoCoordinate::identRefSystem(m_eastNorth.getCoordRefSystem()) << std::endl;
+    std::cout << "m_westSouth " << m_bounds.getWestSouth().getLongitude()
+              << ", " << m_bounds.getWestSouth().getLatitude()
+              << " " << m_bounds.getWestSouth().getCoordRefSystem().identifier() << std::endl;
+    std::cout << "m_eastNorth " << m_bounds.getEastNorth().getLongitude()
+              << ", " << m_bounds.getEastNorth().getLatitude()
+              << " " << m_bounds.getEastNorth().getCoordRefSystem().identifier() << std::endl;
     std::cout << "WebMapImageRequest::WebMapImageRequest bound " << bound << std::endl;
     #endif
     addQuery("BBOX", bound);
@@ -77,13 +76,13 @@ WebMapImageRequest::mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pix
 {
     Glib::RefPtr<Gdk::Pixbuf> clearPix = Gdk::Pixbuf::create(weather_pix->get_colorspace(), weather_pix->get_has_alpha(), weather_pix->get_bits_per_sample(), pix->get_width(), 1);
     clearPix->fill(0x0);   // transp. black
-	bool isnorth = m_eastNorth.getLatitude() > 0.0;
+	bool isnorth = m_bounds.getEastNorth().getLatitude() > 0.0;
     //std::string inname = Glib::ustring::sprintf("/home/rpf/in%f%f.png", std::floor(m_west), std::floor(m_north));
     //pix->save(inname, "png");
     double pix_height = pix->get_height();
 	double relOrigin = (isnorth
-                        ? m_eastNorth.getLatitude()
-                        : std::abs(m_westSouth.getLatitude())) / 90.0;
+                        ? m_bounds.getEastNorth().getLatitude()
+                        : std::abs(m_bounds.getWestSouth().getLatitude())) / 90.0;
 	for (int linY = 0; linY < pix_height; ++linY) {
 	    double relLat = isnorth
 		            ? ((double)(pix_height - linY) / pix_height)
@@ -155,23 +154,27 @@ WebMapProduct::start_element(Glib::Markup::ParseContext& context,
     }
     else if (element_name == "BoundingBox") {
         auto crs = attributes.find("CRS");
+        if (crs != attributes.end()
+         && getCoordRefSystem() == CoordRefSystem::None) {  // if we did not find a useable crs up to now
+            m_crs = CoordRefSystem::parse(crs->second);     // servers seem not to mind being asked one advertised with bounds
+        }
         auto minx = attributes.find("minx");
         auto maxx = attributes.find("maxx");
         auto miny = attributes.find("miny");
         auto maxy = attributes.find("maxy");
         if (crs != attributes.end()
-         && crs->second == GeoCoordinate::identRefSystem(getCoordRefSystem())
+         && crs->second == getCoordRefSystem().identifier()
          && minx != attributes.end()
          && maxx != attributes.end()
          && miny != attributes.end()
          && maxy != attributes.end()) {
-            bool latFirst = GeoCoordinate::is_latitude_first(getCoordRefSystem());
-            m_westSouth.parseLongitude(latFirst ? miny->second : minx->second);
-            m_westSouth.parseLatitude(latFirst ? minx->second : miny->second);
-            m_westSouth.setCoordRefSystem(getCoordRefSystem());
-            m_eastNorth.parseLongitude(latFirst ? maxy->second : maxx->second);
-            m_eastNorth.parseLatitude(latFirst ? maxx->second : maxy->second);
-            m_eastNorth.setCoordRefSystem(getCoordRefSystem());
+            bool latFirst = getCoordRefSystem().is_latitude_first();
+            m_bounds.getWestSouth().parseLongitude(latFirst ? miny->second : minx->second);
+            m_bounds.getWestSouth().parseLatitude(latFirst ? minx->second : miny->second);
+            m_bounds.getWestSouth().setCoordRefSystem(getCoordRefSystem());
+            m_bounds.getEastNorth().parseLongitude(latFirst ? maxy->second : maxx->second);
+            m_bounds.getEastNorth().parseLatitude(latFirst ? maxx->second : maxy->second);
+            m_bounds.getEastNorth().setCoordRefSystem(getCoordRefSystem());
         }
         m_context = ParseContext::BoundingBox;
     }
@@ -289,8 +292,8 @@ WebMapProduct::text(Glib::Markup::ParseContext& context, const Glib::ustring& te
         m_keywords = text;
         break;
     case ParseContext::CRS:
-        if (m_crs == CoordRefSystem::None) {    // keep the first usable
-            m_crs = GeoCoordinate::parseRefSystem(text);
+        if (!m_crs) {    // keep the first usable
+            m_crs = CoordRefSystem::parse(text);
             #ifdef WEATHER_DEBUG
             if (m_crs == CoordRefSystem::None) {
                 std::cout << "WebMapProduct::text " << get_id()
@@ -302,54 +305,58 @@ WebMapProduct::text(Glib::Markup::ParseContext& context, const Glib::ustring& te
     case ParseContext::EX_GeographicBoundingBox:
         break;
     case ParseContext::westBoundLongitude:
-        if (m_parseLevel.size() == 3) { // could check parent element ...
-            m_westSouth.parseLongitude(text);
-            m_westSouth.setCoordRefSystem(getCoordRefSystem());
+        if (m_parseLevel.size() == 3    // could check parent element
+         && getCoordRefSystem()) {      // only useful with crs defined
+            m_bounds.getWestSouth().parseLongitude(text);
+            m_bounds.getWestSouth().setCoordRefSystem(getCoordRefSystem());
             #ifdef WEATHER_DEBUG
             std::cout << "ParseContext::westBoundLongitude "
                       << get_id()
                       << " " << text
-                      << " " << m_westSouth.getLongitude()
-                      << " " << GeoCoordinate::identRefSystem(getCoordRefSystem()) << std::endl;
+                      << " " << m_bounds.getWestSouth().getLongitude()
+                      << " " << getCoordRefSystem().identifier() << std::endl;
             #endif
         }
         break;
     case ParseContext::eastBoundLongitude:
-        if (m_parseLevel.size() == 3) {
-            m_eastNorth.parseLongitude(text);
-            m_eastNorth.setCoordRefSystem(getCoordRefSystem());
+        if (m_parseLevel.size() == 3
+         && getCoordRefSystem()) {      // only useful with crs defined)
+            m_bounds.getEastNorth().parseLongitude(text);
+            m_bounds.getEastNorth().setCoordRefSystem(getCoordRefSystem());
             #ifdef WEATHER_DEBUG
             std::cout << "ParseContext::eastBoundLongitude "
                       << get_id()
                       << " " << text
-                      << " " << m_eastNorth.getLongitude()
-                      << " " << GeoCoordinate::identRefSystem(getCoordRefSystem()) << std::endl;
+                      << " " << m_bounds.getEastNorth().getLongitude()
+                      << " " << getCoordRefSystem().identifier() << std::endl;
             #endif
         }
         break;
     case ParseContext::southBoundLatitude:
-        if (m_parseLevel.size() == 3) {
-            m_westSouth.parseLatitude(text);
-            m_westSouth.setCoordRefSystem(getCoordRefSystem());
+        if (m_parseLevel.size() == 3
+         && getCoordRefSystem()) {      // only useful with crs defined
+            m_bounds.getWestSouth().parseLatitude(text);
+            m_bounds.getWestSouth().setCoordRefSystem(getCoordRefSystem());
             #ifdef WEATHER_DEBUG
             std::cout << "ParseContext::southBoundLatitude "
                       << get_id()
                       << " " << text
-                      << " " << m_westSouth.getLatitude()
-                      << " " << GeoCoordinate::identRefSystem(getCoordRefSystem()) << std::endl;
+                      << " " << m_bounds.getWestSouth().getLatitude()
+                      << " " << getCoordRefSystem().identifier() << std::endl;
             #endif
         }
         break;
     case ParseContext::northBoundLatitude:
-        if (m_parseLevel.size() == 3) {
-            m_eastNorth.parseLatitude(text);
-            m_eastNorth.setCoordRefSystem(getCoordRefSystem());
+        if (m_parseLevel.size() == 3
+         && getCoordRefSystem()) {      // only useful with crs defined
+            m_bounds.getEastNorth().parseLatitude(text);
+            m_bounds.getEastNorth().setCoordRefSystem(getCoordRefSystem());
             #ifdef WEATHER_DEBUG
             std::cout << "ParseContext::northBoundLatitude "
                       << get_id()
                       << " " << text
-                      << " " << m_eastNorth.getLatitude()
-                      << " " << GeoCoordinate::identRefSystem(getCoordRefSystem()) << std::endl;
+                      << " " << m_bounds.getEastNorth().getLatitude()
+                      << " " << getCoordRefSystem().identifier() << std::endl;
             #endif
         }
         break;
@@ -397,6 +404,7 @@ WebMapProduct::parseDimension(const Glib::ustring& text)
         #endif
     }
 }
+
 
 /*
 D.3 periods
@@ -469,7 +477,7 @@ WebMapProduct::periodSeconds(const Glib::ustring& timeDimPeriod)
 bool
 WebMapProduct::is_displayable()
 {
-    bool displayable = m_crs != CoordRefSystem::None;
+    bool displayable = m_crs;   // works when crs is defined
     return displayable;
 }
 
@@ -617,24 +625,32 @@ WebMapService::request(const Glib::ustring& productId)
     int image_size2 = image_size / 2;
     // always query in four steps
     // as we reduced the number of requests send them all at once
-    if (product->get_extend_north() > 0.0) {    // query if needed
-        if (product->get_extend_west() < 0.0) {
-            GeoCoordinate westSouth(-180.0, 0.0, product->getWestSouth().getCoordRefSystem());
-            GeoCoordinate eastNorth(0.0, product->get_extend_north(), product->getEastNorth().getCoordRefSystem());
+    CoordRefSystem crs84(CoordRefSystem::CRS_84);
+    auto greenLon = product->getWestSouth().getCoordRefSystem().fromLinearLon(crs84.toLinearLon(0.0));
+    auto equatorLat = product->getWestSouth().getCoordRefSystem().fromLinearLat(crs84.toLinearLat(0.0));
+    auto maxEast = product->getWestSouth().getCoordRefSystem().fromLinearLon(crs84.toLinearLon(180.0));
+    auto minWest = product->getWestSouth().getCoordRefSystem().fromLinearLon(crs84.toLinearLon(-180.0));
+    if (product->getEastNorth().getLatitude() > 0.0) {    // query if needed
+        if (product->getWestSouth().getLongitude() < 0.0) {
+            GeoBounds boundsWN{
+                minWest, equatorLat
+                , greenLon, product->getEastNorth().getLatitude()
+                , product->getWestSouth().getCoordRefSystem()};
             auto requestWN = std::make_shared<WebMapImageRequest>(this
-                        , westSouth
-                        , eastNorth
+                        , boundsWN
                         , 0, 0
                         , image_size2, image_size2
                         , product);
             m_spoonSession.send(requestWN);
         }
-        if (product->get_extend_east() > 0.0) {
-            GeoCoordinate westSouth(0.0, 0.0, product->getWestSouth().getCoordRefSystem());
-            GeoCoordinate eastNorth(180.0, product->get_extend_north(), product->getEastNorth().getCoordRefSystem());
+        if (product->getEastNorth().getLongitude() > 0.0) {
+            GeoBounds boundsEN{
+                greenLon, equatorLat
+                , maxEast, product->getEastNorth().getLatitude()
+                , product->getEastNorth().getCoordRefSystem()
+            };
             auto requestEN = std::make_shared<WebMapImageRequest>(this
-                        , westSouth
-                        , eastNorth
+                        , boundsEN
                         , image_size2, 0
                         , image_size2, image_size2
                         , product);
@@ -644,24 +660,28 @@ WebMapService::request(const Glib::ustring& productId)
             m_spoonSession.send(requestEN);
         }
     }
-    if (product->get_extend_south() < 0.0) {    // query if needed
-        if (product->get_extend_west() < 0.0) {
-            GeoCoordinate westSouth(-180.0, product->get_extend_south(), product->getWestSouth().getCoordRefSystem());
-            GeoCoordinate eastNorth(0.0, 0.0, product->getEastNorth().getCoordRefSystem());
+    if (product->getWestSouth().getLatitude() < 0.0) {    // query if needed
+        if (product->getWestSouth().getLongitude() < 0.0) {
+            GeoBounds boundsWS{
+                minWest, product->getWestSouth().getLatitude()
+                , greenLon, equatorLat
+                , product->getEastNorth().getCoordRefSystem()
+            };
             auto requestWS = std::make_shared<WebMapImageRequest>(this
-                        , westSouth
-                        , eastNorth
+                        , boundsWS
                         , 0, image_size2
                         , image_size2, image_size2
                         , product);
             m_spoonSession.send(requestWS);
         }
-        if (product->get_extend_east() > 0.0) {
-            GeoCoordinate westSouth(0.0, product->get_extend_south(), product->getWestSouth().getCoordRefSystem());
-            GeoCoordinate eastNorth(180.0, 0.0, product->getEastNorth().getCoordRefSystem());
+        if (product->getEastNorth().getLongitude() > 0.0) {
+            GeoBounds boundsES{
+                greenLon, product->getWestSouth().getLatitude()
+                , maxEast, equatorLat
+                , product->getWestSouth().getCoordRefSystem()
+            };
             auto requestES = std::make_shared<WebMapImageRequest>(this
-                        , westSouth
-                        , eastNorth
+                        , boundsES
                         , image_size2, image_size2
                         , image_size2, image_size2
                         , product);

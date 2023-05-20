@@ -23,8 +23,8 @@ public:
     MapProjection() = default;
     virtual ~MapProjection() = default;
 
-    // expect some normalized value 0...1 and returns 0...1
-    //   for the respective coordinate system
+    // expect some normalized value -1...1 and returns -1...1
+    //   for the respective projection
     virtual double fromLinearLatitude(double rel) = 0;
     virtual double toLinearLatitude(double rel) = 0;
     double fromLinearLongitude(double input);

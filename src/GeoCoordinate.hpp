@@ -18,11 +18,66 @@
 #pragma once
 
 #include <glibmm.h>
+#include <cmath>
 
-enum class CoordRefSystem {
+class CoordRefSystem {
+public:
+    enum Value {
     None,
-    CRS_84,
-    EPSG_4326
+    CRS_84,    // noted in degree lon,lat
+    EPSG_4326, // noted in degree lat,lon
+    EPSG_3857  // noted in m lon,lat (web-mercator)
+    };
+    CoordRefSystem() = default;
+    constexpr CoordRefSystem(Value refSysValue)
+    : m_value(refSysValue)
+    {
+    }
+    // Allow switch and comparisons. (we can have this or operator==)
+    //constexpr operator Value() const
+    //{
+    //    return m_value;
+    //}
+
+    // any valid coord reference system
+    constexpr operator bool() const
+    {
+        return m_value != None;
+    }
+    constexpr bool operator==(CoordRefSystem a) const
+    {
+        return m_value == a.m_value;
+    }
+    constexpr bool operator==(CoordRefSystem::Value val) const
+    {
+        return m_value == val;
+    }
+    constexpr bool operator!=(CoordRefSystem a) const
+    {
+        return m_value != a.m_value;
+    }
+    constexpr bool operator!=(CoordRefSystem::Value val) const
+    {
+        return m_value != val;
+    }
+    double toLinearLon(double value) const;
+    double toLinearLat(double value) const;
+    double fromLinearLon(double value) const;
+    double fromLinearLat(double value) const;
+
+    Glib::ustring identifier() const;
+    static CoordRefSystem parse(const Glib::ustring& ref);
+    bool is_latitude_first() const;
+    static constexpr auto EPSG3857_MIN{-M_PI * 6378137.0};
+    static constexpr auto EPSG3857_MAX{M_PI * 6378137.0};
+protected:
+    static constexpr auto CRS_84_ID{"CRS:84"};
+    static constexpr auto EPSG_4326_ID{"EPSG:4326"};
+    static constexpr auto EPSG_3857_ID{"EPSG:3857"};
+    static constexpr auto NONE_ID{"none"};
+
+private:
+    Value m_value{None};
 };
 
 class GeoCoordinate
@@ -35,26 +90,37 @@ public:
 
     double parseLatitude(const Glib::ustring& lat);
     double parseLongitude(const Glib::ustring& lon);
-    double getLatitude();
-    double getLongitude();
+    double getLatitude() const;
+    double getLongitude() const;
     void setLatitude(double lat);
     void setLongitude(double lon);
     void setCoordRefSystem(CoordRefSystem coordRef);
-    CoordRefSystem getCoordRefSystem();
-    Glib::ustring printValue(char separator = ',');
-    static CoordRefSystem parseRefSystem(const Glib::ustring& ref);
-    static Glib::ustring identRefSystem(CoordRefSystem coordRefSys);
-    static bool is_latitude_first(CoordRefSystem coordRef);
+    CoordRefSystem getCoordRefSystem() const;
+    Glib::ustring printValue(char separator = ',') const;
+    GeoCoordinate convert(CoordRefSystem to) const;
 
-protected:
-    static constexpr auto CRS_84{"CRS:84"};
-    static constexpr auto EPSG_4326{"EPSG:4326"};
-    static constexpr auto NONE{"none"};
 private:
     double m_longitude{0.0};
     double m_latitude{0.0};
-    CoordRefSystem m_coordRef{CoordRefSystem::None};
+    CoordRefSystem m_coordRef;
 };
 
+class GeoBounds
+{
+public:
+    GeoBounds() = default;
+    GeoBounds(double westLon, double southLat, double eastLon, double northLat, CoordRefSystem coordRefSys);
+    GeoBounds(const GeoCoordinate& westSouthLat, const GeoCoordinate& eastNorth);
+    GeoBounds(const GeoBounds& orig) = default;
+    virtual ~GeoBounds() = default;
 
+    Glib::ustring printValue(char separator = ',') const;
+    GeoBounds convert(CoordRefSystem to) const;
+    GeoCoordinate& getWestSouth();
+    GeoCoordinate& getEastNorth();
+
+private:
+    GeoCoordinate m_westSouth;
+    GeoCoordinate m_eastNorth;
+};
 

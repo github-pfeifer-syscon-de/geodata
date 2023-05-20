@@ -19,6 +19,110 @@
 
 #include "GeoCoordinate.hpp"
 #include "LocaleContext.hpp"
+#include "MapProjection.hpp"
+
+bool
+CoordRefSystem::is_latitude_first() const
+{
+    bool latitude_first = false;
+    if (m_value == EPSG_4326) {
+        latitude_first = true;
+    }
+    return latitude_first;
+}
+
+CoordRefSystem
+CoordRefSystem::parse(const Glib::ustring& ref)
+{
+    CoordRefSystem coordRefSystem;
+    auto refUp = ref.uppercase();
+    if (refUp == CRS_84_ID) {
+        coordRefSystem = CRS_84;
+    }
+    else if (refUp == EPSG_4326_ID) {
+        coordRefSystem = EPSG_4326;
+    }
+    //else if (refUp == EPSG_3857_ID) { // this is not yet well supported
+    //    coordRefSystem = EPSG_3857;
+    //}
+    return coordRefSystem;
+}
+
+Glib::ustring
+CoordRefSystem::identifier() const
+{
+    switch (m_value)     {
+    case CRS_84:
+        return CRS_84_ID;
+    case EPSG_4326:
+        return EPSG_4326_ID;
+    case EPSG_3857:
+        return EPSG_3857_ID;
+    default:
+        return NONE_ID;
+    }
+}
+
+double
+CoordRefSystem::toLinearLon(double lon) const
+{
+    switch (m_value) {
+        case CRS_84:
+        case EPSG_4326:
+            return lon / 180.0;
+        case EPSG_3857:
+            return lon / EPSG3857_MAX;
+        default:
+            return lon;
+    }
+}
+
+double
+CoordRefSystem::toLinearLat(double lat) const
+{
+    MapProjectionMercator merc;
+    switch (m_value) {
+        case CRS_84:
+        case EPSG_4326:
+            return lat / 90.0;
+        case EPSG_3857:
+            return merc.toLinearLatitude(lat / EPSG3857_MAX);
+        case None:
+            return lat;
+    }
+    return lat;
+}
+
+double
+CoordRefSystem::fromLinearLon(double relLon) const
+{
+    switch (m_value) {
+        case CRS_84:
+        case EPSG_4326:
+            return relLon * 180.0;
+        case EPSG_3857:
+            return relLon * EPSG3857_MAX;
+        case None:
+            return relLon;
+    }
+    return relLon;
+}
+
+double
+CoordRefSystem::fromLinearLat(double relLat) const
+{
+    MapProjectionMercator merc;
+    switch (m_value) {
+        case CRS_84:
+        case EPSG_4326:
+            return relLat * 90.0;
+        case EPSG_3857:
+            return merc.fromLinearLatitude(relLat) * EPSG3857_MAX;
+        case None:
+            return relLat;
+    }
+    return relLat;
+}
 
 GeoCoordinate::GeoCoordinate(double lon, double lat, CoordRefSystem coordRefSys)
 : m_longitude{lon}
@@ -43,22 +147,12 @@ GeoCoordinate::parseLongitude(const Glib::ustring& lon)
     return m_longitude;
 }
 
-bool
-GeoCoordinate::is_latitude_first(CoordRefSystem coordRef)
-{
-    bool latitude_first = false;
-    if (coordRef == CoordRefSystem::EPSG_4326) {
-        latitude_first = true;
-    }
-    return latitude_first;
-}
-
 Glib::ustring
-GeoCoordinate::printValue(char separator)
+GeoCoordinate::printValue(char separator) const
 {
     double first;
     double second;
-    if (is_latitude_first(m_coordRef)) {
+    if (m_coordRef.is_latitude_first()) {
         first = m_latitude;
         second = m_longitude;
     }
@@ -82,19 +176,19 @@ GeoCoordinate::setCoordRefSystem(CoordRefSystem coordRef)
 }
 
 CoordRefSystem
-GeoCoordinate::getCoordRefSystem()
+GeoCoordinate::getCoordRefSystem() const
 {
     return m_coordRef;
 }
 
 double
-GeoCoordinate::getLatitude()
+GeoCoordinate::getLatitude() const
 {
     return m_latitude;
 }
 
 double
-GeoCoordinate::getLongitude()
+GeoCoordinate::getLongitude() const
 {
     return m_longitude;
 }
@@ -111,28 +205,60 @@ GeoCoordinate::setLongitude(double lon)
     m_longitude = lon;
 }
 
-CoordRefSystem
-GeoCoordinate::parseRefSystem(const Glib::ustring& ref)
+GeoCoordinate
+GeoCoordinate::convert(CoordRefSystem to) const
 {
-    auto refUp = ref.uppercase();
-    if (refUp == CRS_84) {
-        return CoordRefSystem::CRS_84;
+    double linLon = m_coordRef.toLinearLon(m_longitude);
+    double linLat = m_coordRef.toLinearLat(m_latitude);
+    double toLon = to.fromLinearLon(linLon);
+    double toLat = to.fromLinearLat(linLat);
+    GeoCoordinate result{toLon, toLat, to};
+    return result;
+}
+
+GeoBounds::GeoBounds(double westLon, double southLat, double eastLon, double northLat, CoordRefSystem coordRefSys)
+: m_westSouth{westLon, southLat, coordRefSys}
+, m_eastNorth{eastLon, northLat, coordRefSys}
+{
+}
+
+GeoBounds::GeoBounds(const GeoCoordinate& westSouth, const GeoCoordinate& eastNorth)
+: m_westSouth{westSouth}
+, m_eastNorth{eastNorth}
+{
+    if (westSouth.getCoordRefSystem() != eastNorth.getCoordRefSystem()) {
+        std::cerr << "GeoBounds::GeoBounds using missmatching coordRefSystem"
+                  << " westSouth"  << westSouth.getCoordRefSystem().identifier()
+                  << " eastNorth " << eastNorth.getCoordRefSystem().identifier()
+                  << std::endl;
     }
-    if (refUp == EPSG_4326) {
-        return CoordRefSystem::EPSG_4326;
-    }
-    return CoordRefSystem::None;
+}
+
+
+GeoCoordinate&
+GeoBounds::getWestSouth()
+{
+    return m_westSouth;
+}
+
+GeoCoordinate&
+GeoBounds::getEastNorth()
+{
+    return m_eastNorth;
 }
 
 Glib::ustring
-GeoCoordinate::identRefSystem(CoordRefSystem coordRefSys)
+GeoBounds::printValue(char separator) const
 {
-    switch (coordRefSys)     {
-    case CoordRefSystem::CRS_84:
-        return CRS_84;
-    case CoordRefSystem::EPSG_4326:
-        return EPSG_4326;
-    default:
-        return NONE;
-    }
+    return Glib::ustring::sprintf("%s%c%s"
+                , m_westSouth.printValue(separator), separator, m_eastNorth.printValue(separator));
+}
+
+GeoBounds
+GeoBounds::convert(CoordRefSystem to) const
+{
+    auto westSouth = m_westSouth.convert(to);
+    auto eastNorth = m_eastNorth.convert(to);
+    GeoBounds result{westSouth, eastNorth};
+    return result;
 }

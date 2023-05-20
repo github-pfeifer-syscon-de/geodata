@@ -44,14 +44,22 @@ MapProjection::fromLinearLongitude(double input)
 double
 MapProjectionMercator::fromLinearLatitude(double input)
 {
-    double ym = std::log(std::tan(M_PI_4 + normToRadians(input) / 2.0));
-    return ym / M_PI;   // keep range 0...1
+    auto absinput = std::abs(input);
+    double ym = std::log(std::tan(M_PI_4 + normToRadians(absinput) / 2.0));
+    if (input < 0.0) {
+        ym = -ym;
+    }
+    return ym / M_PI;   // keep range -1...1
 }
 
 double
 MapProjectionMercator::toLinearLatitude(double input)
 {
-    double yr = 2.0 * (std::atan(std::exp(input * M_PI)) -  M_PI_4);
-    return radiansToNorm(yr);   // keep range 0...1
+    auto absinput = std::abs(input);
+    double yr = 2.0 * (std::atan(std::exp(absinput * M_PI)) - M_PI_4);
+    if (input < 0.0) {
+        yr = -yr;
+    }
+    return radiansToNorm(yr);   // keep range -1...1
 }
 

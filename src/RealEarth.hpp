@@ -72,6 +72,12 @@ public:
     {
         return m_times;
     }
+    double get_extend_north() {
+        return std::min(m_bounds.getEastNorth().getLatitude(), m_seedlatbound);  // some images report 90 and can't handle it afterwards as it seems
+    }
+    double get_extend_south() {
+        return std::max(m_bounds.getWestSouth().getLatitude(), -m_seedlatbound);
+    }
     double get_seedlatbound() {
         return m_seedlatbound;
     }
