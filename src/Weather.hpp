@@ -26,7 +26,7 @@
 #include "Spoon.hpp"
 #include "GeoCoordinate.hpp"
 
-#define WEATHER_DEBUG
+#undef WEATHER_DEBUG
 
 class WeatherImageRequest;
 class WeatherProduct;
