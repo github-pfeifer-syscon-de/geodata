@@ -83,7 +83,7 @@ public:
     }
     bool is_displayable() override;
     bool is_latest(const Glib::ustring& latest);
-    bool latest(Glib::DateTime& datetime) override;
+    bool latest(Glib::DateTime& datetime, bool local) override;
     void set_extent(JsonObject* entry);
 
     Glib::RefPtr<Gdk::Pixbuf> get_legend() override;
@@ -103,12 +103,11 @@ class RealEarth
 : public Weather
 {
 public:
-    RealEarth(WeatherConsumer* consumer);
+    RealEarth(WeatherConsumer* consumer, const Glib::ustring& base_url);
     virtual ~RealEarth() = default;
 
     void capabilities() override;
     void request(const Glib::ustring& productId) override;
-
     Glib::ustring get_base_url() {
         return m_base_url;
     }
@@ -117,16 +116,13 @@ public:
     void inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message);
     Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product);
 
-    static constexpr auto NAME{"RealEarth"};
 protected:
     void inst_on_latest_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message);
     void inst_on_extend_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message);
     void get_extend(std::shared_ptr<RealEarthProduct>& product);
 
 private:
-    SpoonSession m_spoonSession;
-    static constexpr auto m_base_url{"https://realearth.ssec.wisc.edu/"};
-
+    Glib::ustring m_base_url;
     Glib::ustring queued_product_request;
 };
 

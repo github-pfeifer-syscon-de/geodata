@@ -216,6 +216,19 @@ GeoCoordinate::convert(CoordRefSystem to) const
     return result;
 }
 
+double
+GeoCoordinate::getLinearLatitude() const
+{
+    return getCoordRefSystem().toLinearLat(m_latitude);
+}
+
+double
+GeoCoordinate::getLinearLongitude() const
+{
+    return getCoordRefSystem().toLinearLon(m_longitude);
+}
+
+
 GeoBounds::GeoBounds(double westLon, double southLat, double eastLon, double northLat, CoordRefSystem coordRefSys)
 : m_westSouth{westLon, southLat, coordRefSys}
 , m_eastNorth{eastLon, northLat, coordRefSys}

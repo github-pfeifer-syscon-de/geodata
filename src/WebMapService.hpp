@@ -133,7 +133,7 @@ public:
     Glib::RefPtr<Gdk::Pixbuf> get_legend() override;
     void set_legend(Glib::RefPtr<Gdk::Pixbuf>& legend) override;
     Glib::ustring get_description() override;
-    bool latest(Glib::DateTime& datetime) override;
+    bool latest(Glib::DateTime& datetime, bool local) override;
     bool is_displayable() override;
     Glib::ustring get_legend_url();
     CoordRefSystem getCoordRefSystem();
@@ -150,9 +150,7 @@ private:
     Glib::ustring m_timeDimStart;
     Glib::ustring m_timeDimEnd;
     Glib::ustring m_timeDimPeriod;
-    static constexpr int64_t MIN_TIME_PERIOD_SEC = 5*60;
-    static constexpr int64_t TIME_DELAY_SEC = 30*60;
-    uint64_t m_timePeriodSec{MIN_TIME_PERIOD_SEC};
+    uint32_t m_timePeriodSec;
     ParseContext m_context{ParseContext::None};
     std::stack<ParseContext>  m_parseLevel;
     std::vector<Glib::ustring> m_legends;
@@ -165,11 +163,25 @@ class WebMapService
 : public Weather
 {
 public:
-    WebMapService(WeatherConsumer* consumer);
+    WebMapService(WeatherConsumer* consumer, const Glib::ustring& name, const Glib::ustring& address, int delaySec, uint32_t minPeriodSec);
     virtual ~WebMapService() = default;
 
-    virtual Glib::ustring get_base_url() = 0;
-    virtual Glib::ustring get_path() = 0;
+    Glib::ustring getAddress()
+    {
+        return m_address;
+    }
+    Glib::ustring getName()
+    {
+        return m_name;
+    }
+    int getDelaySec()
+    {
+        return m_delaySec;
+    }
+    uint32_t getMinPeriodSec()
+    {
+        return m_minPeriodSec;
+    }
 protected:
     void capabilities();
     void inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message);
@@ -178,7 +190,10 @@ protected:
     Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product);
 
 private:
-    SpoonSession m_spoonSession;
+    Glib::ustring m_address;
+    Glib::ustring m_name;
+    int m_delaySec;
+    uint32_t m_minPeriodSec;
 };
 
 class NXMLParser : public Glib::Markup::Parser {

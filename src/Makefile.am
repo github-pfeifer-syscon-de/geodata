@@ -27,11 +27,10 @@ libgeodata_la_SOURCES = \
 	Weather.cpp \
 	RealEarth.cpp \
 	WebMapService.cpp \
-	EumetSat.cpp \
-	DeutscherWetterDienst.cpp \
 	GeoCoordinate.cpp \
 	MapProjection.cpp \
 	LocaleContext.cpp \
+	GeoJsonSimplifyHandler.cpp \
 	GeoJson.cpp
 
 libgeodata_la_LIBADD =  \
@@ -50,11 +49,10 @@ pkginclude_HEADERS = \
 	Weather.hpp \
 	RealEarth.hpp \
 	WebMapService.hpp \
-	EumetSat.hpp \
-	DeutscherWetterDienst.hpp \
 	GeoCoordinate.hpp \
 	MapProjection.hpp \
 	LocaleContext.hpp \
+	GeoJsonSimplifyHandler.hpp \
 	GeoJson.hpp
 
 pkgconfigdir = $(libdir)/pkgconfig

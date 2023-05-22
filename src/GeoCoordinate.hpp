@@ -98,7 +98,8 @@ public:
     CoordRefSystem getCoordRefSystem() const;
     Glib::ustring printValue(char separator = ',') const;
     GeoCoordinate convert(CoordRefSystem to) const;
-
+    double getLinearLatitude() const;
+    double getLinearLongitude() const;
 private:
     double m_longitude{0.0};
     double m_latitude{0.0};

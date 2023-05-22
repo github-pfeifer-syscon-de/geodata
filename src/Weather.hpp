@@ -64,7 +64,7 @@ public:
 
     virtual Glib::RefPtr<Gdk::Pixbuf> get_legend() = 0;
     virtual Glib::ustring get_description() = 0;
-    virtual bool latest(Glib::DateTime& datetime) = 0;
+    virtual bool latest(Glib::DateTime& datetime, bool local) = 0;
     virtual bool is_displayable() = 0;
     virtual void set_legend(Glib::RefPtr<Gdk::Pixbuf>& pixbuf) = 0;
 
@@ -109,8 +109,6 @@ public:
     virtual ~Weather() = default;
     WeatherConsumer* get_consumer();
 
-    static std::vector<Glib::ustring> get_services();
-    static std::shared_ptr<Weather> create_service(const Glib::ustring &name, WeatherConsumer* consumer);
     virtual void check_product(const Glib::ustring& weatherProductId) = 0;
     virtual void capabilities() = 0;
     virtual void request(const Glib::ustring& productId) = 0;
@@ -128,5 +126,9 @@ protected:
     type_signal_products_completed m_signal_products_completed;
     WeatherConsumer* m_consumer;
     std::map<Glib::ustring, std::shared_ptr<WeatherProduct>> m_products;
+    std::shared_ptr<SpoonSession> getSpoonSession();
+private:
+    std::shared_ptr<SpoonSession> spoonSession;
+
 };
 

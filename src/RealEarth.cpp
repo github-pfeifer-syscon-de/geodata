@@ -187,7 +187,7 @@ RealEarthProduct::is_latest(const Glib::ustring& latest)
  * @return true -> date&time was set, false -> something went wrong
  */
 bool
-RealEarthProduct::latest(Glib::DateTime& dateTime)
+RealEarthProduct::latest(Glib::DateTime& dateTime, bool local)
 {
     if (!m_times.empty()) {
         Glib::ustring latest = m_times[m_times.size()-1];
@@ -199,7 +199,8 @@ RealEarthProduct::latest(Glib::DateTime& dateTime)
         else {
             iso8601.replace(pos, 1, "T"); // make it iso
         }
-        auto utc = Glib::DateTime::create_from_iso8601(iso8601, Glib::TimeZone::create_utc());
+        auto tz = local ? Glib::TimeZone::create_local() : Glib::TimeZone::create_utc();
+        auto utc = Glib::DateTime::create_from_iso8601(iso8601, tz);
         if (utc) {
             //std::cout << "RealEarthProduct::latest parsed " << iso8601 << " to utc " <<  utc.format("%F-%T") << std::endl;
             dateTime = utc.to_local();
@@ -260,9 +261,9 @@ RealEarthProduct::set_legend(Glib::RefPtr<Gdk::Pixbuf>& legend) {
     m_signal_legend.emit(m_legend);
 }
 
-RealEarth::RealEarth(WeatherConsumer* consumer)
+RealEarth::RealEarth(WeatherConsumer* consumer, const Glib::ustring& base_url)
 : Weather(consumer)
-, m_spoonSession{"map private use "}// last ws will add libsoup3
+, m_base_url{base_url}
 {
 }
 
@@ -313,7 +314,7 @@ RealEarth::capabilities()
     std::cout << "Weather::capabilities"
               << " message->get_url() " << message->get_url() << std::endl;
     #endif
-    m_spoonSession.send(message);
+    getSpoonSession()->send(message);
 }
 
 
@@ -375,7 +376,7 @@ RealEarth::check_product(const Glib::ustring& weatherProductId)
         std::cout << "RealEarth::check_product"
                   << " url " << product->get_url() << std::endl;
         #endif
-        m_spoonSession.send(product);
+        getSpoonSession()->send(product);
     }
 }
 
@@ -435,7 +436,7 @@ RealEarth::get_extend(std::shared_ptr<RealEarthProduct>& product)
     #ifdef WEATHER_DEBUG
     std::cout << "Weather::get_extend " << extend->get_url()  << std::endl;
     #endif
-    m_spoonSession.send(extend);
+    getSpoonSession()->send(extend);
 }
 
 Glib::RefPtr<Gdk::Pixbuf>
@@ -453,7 +454,7 @@ RealEarth::get_legend(std::shared_ptr<WeatherProduct>& product)
             #ifdef WEATHER_DEBUG
             std::cout << "RealEarth::get_legend " << legend->get_url()  << std::endl;
             #endif
-            m_spoonSession.send(legend);
+            getSpoonSession()->send(legend);
         }
         else {
             std::cerr << "the passed instance for product was not of type RealEarthProduct" << std::endl;
@@ -582,26 +583,26 @@ RealEarth::request(const Glib::ustring& productId)
                 ,0, 0
                 ,image_size2, image_size2
                 ,product);
-    m_spoonSession.send(requestWN);
+    getSpoonSession()->send(requestWN);
     auto requestWS = std::make_shared<RealEarthImageRequest>(this
                 ,product->get_extend_south(), -180.0
                 ,0.0, 0.0
                 ,0, image_size2
                 ,image_size2, image_size2
                 ,product);
-    m_spoonSession.send(requestWS);
+    getSpoonSession()->send(requestWS);
     auto requestEN = std::make_shared<RealEarthImageRequest>(this
                 ,0.0, 0.0
                 ,product->get_extend_north(), 180.0
                 ,image_size2, 0
                 ,image_size2, image_size2
                 ,product);
-    m_spoonSession.send(requestEN);
+    getSpoonSession()->send(requestEN);
     auto requestES = std::make_shared<RealEarthImageRequest>(this
                 ,product->get_extend_south(), 0.0
                 ,0.0, 180.0
                 ,image_size2, image_size2
                 ,image_size2, image_size2
                 ,product);
-    m_spoonSession.send(requestES);
+    getSpoonSession()->send(requestES);
 }

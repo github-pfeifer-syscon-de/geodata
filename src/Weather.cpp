@@ -21,10 +21,8 @@
 
 
 #include "Weather.hpp"
-#include "RealEarth.hpp"
-#include "EumetSat.hpp"
 #include "JsonHelper.hpp"
-#include "DeutscherWetterDienst.hpp"
+
 
 WeatherImageRequest::WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path)
 : SpoonMessageStream(host, path)
@@ -101,31 +99,6 @@ WeatherConsumer*
 Weather::get_consumer()
 {
     return m_consumer;
-}
-
-std::vector<Glib::ustring>
-Weather::get_services()
-{
-    std::vector<Glib::ustring> list;
-    list.push_back(RealEarth::NAME);
-    list.push_back(EumetSat::NAME);
-    list.push_back(DeutscherWetterDienst::NAME);
-    return list;
-}
-
-std::shared_ptr<Weather>
-Weather::create_service(const Glib::ustring &name, WeatherConsumer* consumer)
-{
-    if (name == RealEarth::NAME) {
-        return std::make_shared<RealEarth>(consumer);
-    }
-    if (name == EumetSat::NAME) {
-        return std::make_shared<EumetSat>(consumer);
-    }
-    if (name == DeutscherWetterDienst::NAME) {
-        return std::make_shared<DeutscherWetterDienst>(consumer);
-    }
-    return nullptr;
 }
 
 void
@@ -227,6 +200,15 @@ Weather::get_products()
     std::cout << "Weather::get_products " << weatherProducts.size() << std::endl;
     #endif
     return weatherProducts;
+}
+
+std::shared_ptr<SpoonSession>
+Weather::getSpoonSession()
+{
+    if (!spoonSession) {
+        spoonSession = std::make_shared<SpoonSession>("map private use ");// last ws will add libsoup3
+    }
+    return spoonSession;
 }
 
 std::string

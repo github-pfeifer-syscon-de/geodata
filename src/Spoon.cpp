@@ -35,6 +35,7 @@ SpoonSession::SpoonSession(const Glib::ustring& user_agent)
 SpoonSession::~SpoonSession()
 {
     if (m_session != nullptr) {
+        soup_session_abort(m_session); // any dangling requests are bad!
         g_object_unref(m_session);
     }
 }

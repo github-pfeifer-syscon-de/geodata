@@ -18,6 +18,7 @@
 #include <iostream>
 #include <string>
 #include <StringUtils.hpp>
+#include <limits>
 
 #include "WebMapService.hpp"
 #include "LocaleContext.hpp"
@@ -33,7 +34,7 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
         , const GeoBounds& bounds
         , int pixX, int pixY, int pixWidth, int pixHeight
         , std::shared_ptr<WebMapProduct>& product)
-: WeatherImageRequest(webMapService->get_base_url(), webMapService->get_path())
+: WeatherImageRequest(webMapService->getAddress(), "")
 , m_webMapService{webMapService}
 , m_bounds{bounds}
 , m_pixX{pixX}
@@ -74,15 +75,13 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
 void
 WebMapImageRequest::mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pixbuf>& weather_pix)
 {
-    Glib::RefPtr<Gdk::Pixbuf> clearPix = Gdk::Pixbuf::create(weather_pix->get_colorspace(), weather_pix->get_has_alpha(), weather_pix->get_bits_per_sample(), pix->get_width(), 1);
+    Glib::RefPtr<Gdk::Pixbuf> clearPix = Gdk::Pixbuf::create(pix->get_colorspace(), pix->get_has_alpha(), pix->get_bits_per_sample(), pix->get_width(), 1);
     clearPix->fill(0x0);   // transp. black
 	bool isnorth = m_bounds.getEastNorth().getLatitude() > 0.0;
-    //std::string inname = Glib::ustring::sprintf("/home/rpf/in%f%f.png", std::floor(m_west), std::floor(m_north));
-    //pix->save(inname, "png");
     double pix_height = pix->get_height();
 	double relOrigin = (isnorth
-                        ? m_bounds.getEastNorth().getLatitude()
-                        : std::abs(m_bounds.getWestSouth().getLatitude())) / 90.0;
+                        ? m_bounds.getEastNorth().getCoordRefSystem().toLinearLat(m_bounds.getEastNorth().getLatitude())
+                        : std::abs(m_bounds.getWestSouth().getCoordRefSystem().toLinearLat(m_bounds.getWestSouth().getLatitude())));
 	for (int linY = 0; linY < pix_height; ++linY) {
 	    double relLat = isnorth
 		            ? ((double)(pix_height - linY) / pix_height)
@@ -468,8 +467,8 @@ WebMapProduct::periodSeconds(const Glib::ustring& timeDimPeriod)
             }
         }
     }
-    if (timePeriodSec < MIN_TIME_PERIOD_SEC) {
-        timePeriodSec = MIN_TIME_PERIOD_SEC;
+    if (timePeriodSec < m_webMapService->getMinPeriodSec()) {
+        timePeriodSec = m_webMapService->getMinPeriodSec();
     }
     return timePeriodSec;
 }
@@ -489,7 +488,7 @@ WebMapProduct::is_latest()
         if (utcLatest) {
             utcLatest = utcLatest.add_seconds(m_timePeriodSec);
             auto now = Glib::DateTime::create_now_utc();
-            now = now.add_seconds(-TIME_DELAY_SEC); // compare with past as service introduce delay
+            now = now.add_seconds(-m_webMapService->getDelaySec()); // compare with past as service introduce delay
             #ifdef WEATHER_DEBUG
             std::cout << "WebMapProduct::is_latest "
                       << get_id()
@@ -506,7 +505,7 @@ WebMapProduct::is_latest()
             }
         }
     }
-    return true;    // cant tell
+    return true;    // cant tell or already latest
 }
 
 Glib::RefPtr<Gdk::Pixbuf>
@@ -523,11 +522,18 @@ WebMapProduct::set_legend(Glib::RefPtr<Gdk::Pixbuf>& legendImage)
 }
 
 bool
-WebMapProduct::latest(Glib::DateTime& dateTime)
+WebMapProduct::latest(Glib::DateTime& dateTime, bool local)
 {
    if (!m_timeDimEnd.empty()) {
-        Glib::ustring iso8601 = m_timeDimEnd;
-        auto utc = Glib::DateTime::create_from_iso8601(iso8601, Glib::TimeZone::create_utc());
+        auto iso8601 = m_timeDimEnd;
+        if (local) {    // as the string tz has precedence remove it
+            auto pos = iso8601.find("Z");
+            if (pos != Glib::ustring::npos) {
+                iso8601.erase(pos, 1);
+            }
+        }
+        auto tz = local ? Glib::TimeZone::create_local() : Glib::TimeZone::create_utc();
+        auto utc = Glib::DateTime::create_from_iso8601(iso8601, tz);
         if (utc) {
             //std::cout << "RealEarthProduct::latest parsed " << iso8601 << " to utc " <<  utc.format("%F-%T") << std::endl;
             dateTime = utc.to_local();
@@ -545,7 +551,7 @@ WebMapProduct::latest(Glib::DateTime& dateTime)
 void
 WebMapService::capabilities()
 {
-    auto message = std::make_shared<SpoonMessageDirect>(get_base_url(), get_path());
+    auto message = std::make_shared<SpoonMessageDirect>(getAddress(), "");
     message->addQuery("service", "WMS");
     message->addQuery("version", "1.3.0");
     message->addQuery("request", "GetCapabilities");
@@ -554,7 +560,7 @@ WebMapService::capabilities()
     std::cout << "WebMapService::capabilities"
               << " message->get_url() " << message->get_url() << std::endl;
     #endif
-    m_spoonSession.send(message);
+    getSpoonSession()->send(message);
 }
 
 void
@@ -606,9 +612,12 @@ WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int sta
 }
 
 
-WebMapService::WebMapService(WeatherConsumer* consumer)
+WebMapService::WebMapService(WeatherConsumer* consumer, const Glib::ustring& name, const Glib::ustring& address, int delaySec, uint32_t minPeriodSec)
 : Weather(consumer)
-, m_spoonSession{"map private use "}
+, m_address{address}
+, m_name{name}
+, m_delaySec{delaySec}
+, m_minPeriodSec{minPeriodSec}
 {
 }
 
@@ -628,64 +637,70 @@ WebMapService::request(const Glib::ustring& productId)
     CoordRefSystem crs84(CoordRefSystem::CRS_84);
     auto greenLon = product->getWestSouth().getCoordRefSystem().fromLinearLon(crs84.toLinearLon(0.0));
     auto equatorLat = product->getWestSouth().getCoordRefSystem().fromLinearLat(crs84.toLinearLat(0.0));
-    auto maxEast = product->getWestSouth().getCoordRefSystem().fromLinearLon(crs84.toLinearLon(180.0));
-    auto minWest = product->getWestSouth().getCoordRefSystem().fromLinearLon(crs84.toLinearLon(-180.0));
     if (product->getEastNorth().getLatitude() > 0.0) {    // query if needed
         if (product->getWestSouth().getLongitude() < 0.0) {
+            double linLonWest = std::abs(product->getWestSouth().getLinearLongitude());
+            int xOffs = static_cast<int>(linLonWest * image_size2);
             GeoBounds boundsWN{
-                minWest, equatorLat
+                product->getWestSouth().getLongitude(), equatorLat
                 , greenLon, product->getEastNorth().getLatitude()
                 , product->getWestSouth().getCoordRefSystem()};
             auto requestWN = std::make_shared<WebMapImageRequest>(this
                         , boundsWN
-                        , 0, 0
-                        , image_size2, image_size2
+                        , image_size2 - xOffs, 0
+                        , xOffs, image_size2
                         , product);
-            m_spoonSession.send(requestWN);
+            getSpoonSession()->send(requestWN);
         }
         if (product->getEastNorth().getLongitude() > 0.0) {
+            double linLonEast = product->getEastNorth().getLinearLongitude();
+            int xOffs = static_cast<int>(linLonEast * image_size2);
             GeoBounds boundsEN{
                 greenLon, equatorLat
-                , maxEast, product->getEastNorth().getLatitude()
+                , product->getEastNorth().getLongitude(), product->getEastNorth().getLatitude()
                 , product->getEastNorth().getCoordRefSystem()
             };
             auto requestEN = std::make_shared<WebMapImageRequest>(this
                         , boundsEN
                         , image_size2, 0
-                        , image_size2, image_size2
+                        , xOffs, image_size2
                         , product);
             #ifdef WEATHER_DEBUG
             std::cout << "WebMapService::request product " << product->get_id() << " url " << requestEN->get_url() << std::endl;
             #endif
-            m_spoonSession.send(requestEN);
+            getSpoonSession()->send(requestEN);
         }
     }
     if (product->getWestSouth().getLatitude() < 0.0) {    // query if needed
         if (product->getWestSouth().getLongitude() < 0.0) {
+            double linLonWest = std::abs(product->getWestSouth().getLinearLongitude());
+            int xOffs = static_cast<int>(linLonWest * image_size2);
             GeoBounds boundsWS{
-                minWest, product->getWestSouth().getLatitude()
+                product->getWestSouth().getLongitude(), product->getWestSouth().getLatitude()
                 , greenLon, equatorLat
                 , product->getEastNorth().getCoordRefSystem()
             };
             auto requestWS = std::make_shared<WebMapImageRequest>(this
                         , boundsWS
-                        , 0, image_size2
-                        , image_size2, image_size2
+                        , image_size2 - xOffs, image_size2
+                        , xOffs, image_size2
                         , product);
-            m_spoonSession.send(requestWS);
+            getSpoonSession()->send(requestWS);
         }
         if (product->getEastNorth().getLongitude() > 0.0) {
+            double linLonEast = product->getEastNorth().getLinearLongitude();
+            int xOffs = static_cast<int>(linLonEast * image_size2);
             GeoBounds boundsES{
                 greenLon, product->getWestSouth().getLatitude()
-                , maxEast, equatorLat
+                , product->getEastNorth().getLongitude(), equatorLat
                 , product->getWestSouth().getCoordRefSystem()
             };
             auto requestES = std::make_shared<WebMapImageRequest>(this
                         , boundsES
                         , image_size2, image_size2
-                        , image_size2, image_size2
+                        , xOffs, image_size2
                         , product);
-            m_spoonSession.send(requestES);
+            getSpoonSession()->send(requestES);
         }
     }
 }
@@ -723,7 +738,7 @@ WebMapService::get_legend(std::shared_ptr<WeatherProduct>& product)
         #ifdef WEATHER_DEBUG
         std::cout << "WebMapService::get_legend " << legendURL  << std::endl;
         #endif
-        m_spoonSession.send(legendReq);
+        getSpoonSession()->send(legendReq);
     }
     return legend;
 }
