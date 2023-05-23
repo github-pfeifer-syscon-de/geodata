@@ -23,6 +23,14 @@
 #include "Weather.hpp"
 #include "JsonHelper.hpp"
 
+WebMapServiceConf::WebMapServiceConf(const Glib::ustring& name, const Glib::ustring& address, int delay_sec, const Glib::ustring& type, bool viewCurrentTime)
+: m_name{name}
+, m_address{address}
+, m_delay_sec{delay_sec}
+, m_type{type}
+, m_viewCurrentTime{viewCurrentTime}
+{
+}
 
 WeatherImageRequest::WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path)
 : SpoonMessageStream(host, path)

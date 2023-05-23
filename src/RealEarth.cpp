@@ -187,19 +187,19 @@ RealEarthProduct::is_latest(const Glib::ustring& latest)
  * @return true -> date&time was set, false -> something went wrong
  */
 bool
-RealEarthProduct::latest(Glib::DateTime& dateTime, bool local)
+RealEarthProduct::latest(Glib::DateTime& dateTime)
 {
     if (!m_times.empty()) {
         Glib::ustring latest = m_times[m_times.size()-1];
         Glib::ustring iso8601 = latest;
         auto pos = iso8601.find(".");
         if (pos == Glib::ustring::npos)  {
-            std::cout << "WeatherProduct::latest latest " << iso8601 << " no '.' found" << std::endl;
+            std::cout << "RealEarthProduct::latest latest " << iso8601 << " no '.' found" << std::endl;
         }
         else {
             iso8601.replace(pos, 1, "T"); // make it iso
         }
-        auto tz = local ? Glib::TimeZone::create_local() : Glib::TimeZone::create_utc();
+        auto tz = Glib::TimeZone::create_utc();
         auto utc = Glib::DateTime::create_from_iso8601(iso8601, tz);
         if (utc) {
             //std::cout << "RealEarthProduct::latest parsed " << iso8601 << " to utc " <<  utc.format("%F-%T") << std::endl;

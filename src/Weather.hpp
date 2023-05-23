@@ -28,6 +28,49 @@
 
 #undef WEATHER_DEBUG
 
+class WebMapServiceConf {
+public:
+    WebMapServiceConf(const Glib::ustring& name, const Glib::ustring& address, int delay_sec, const Glib::ustring& type, bool viewCurrentTime);
+    explicit WebMapServiceConf(const WebMapServiceConf& oth) = delete;
+    virtual ~WebMapServiceConf() = default;
+
+    Glib::ustring getName() const
+    {
+        return m_name;
+    }
+    Glib::ustring getAddress() const
+    {
+        return m_address;
+    }
+    // beside the document period see WMS doc (the interval between updates)
+    //   there is a delay (the place when this becomes visible is with the time
+    //     dimension the latest values always is some minutes behind the actual time).
+    //   e.g. the precipitation is announced with a interval P which presumably means ask any time, we will give you the nearest value.
+    //     but if you try to ask for now there is a error when requesting the images,
+    //     some fiddeling suggested the use of a 30 minutes delay
+    //     and the use of a minimum interval of 5 minutes is due
+    //     to the nature off our application as a resource friendly tool.
+    int getDelaySec() const
+    {
+        return m_delay_sec;
+    }
+    Glib::ustring getType() const
+    {
+        return m_type;
+    }
+    // some WMS server offer prognosis but you prefer the current time
+    bool isViewCurrentTime() const
+    {
+        return m_viewCurrentTime;
+    }
+private:
+    Glib::ustring m_name;
+    Glib::ustring m_address;
+    int m_delay_sec;
+    Glib::ustring m_type;
+    bool m_viewCurrentTime;
+};
+
 class WeatherImageRequest;
 class WeatherProduct;
 
@@ -64,7 +107,7 @@ public:
 
     virtual Glib::RefPtr<Gdk::Pixbuf> get_legend() = 0;
     virtual Glib::ustring get_description() = 0;
-    virtual bool latest(Glib::DateTime& datetime, bool local) = 0;
+    virtual bool latest(Glib::DateTime& datetime) = 0;
     virtual bool is_displayable() = 0;
     virtual void set_legend(Glib::RefPtr<Gdk::Pixbuf>& pixbuf) = 0;
 

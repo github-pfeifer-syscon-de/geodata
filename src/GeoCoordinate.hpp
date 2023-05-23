@@ -70,6 +70,11 @@ public:
     bool is_latitude_first() const;
     static constexpr auto EPSG3857_MIN{-M_PI * 6378137.0};
     static constexpr auto EPSG3857_MAX{M_PI * 6378137.0};
+    friend std::ostream& operator<<(std::ostream& os, const CoordRefSystem& myRef) {
+        os << myRef.identifier();
+        return os;
+    }
+
 protected:
     static constexpr auto CRS_84_ID{"CRS:84"};
     static constexpr auto EPSG_4326_ID{"EPSG:4326"};
@@ -100,6 +105,11 @@ public:
     GeoCoordinate convert(CoordRefSystem to) const;
     double getLinearLatitude() const;
     double getLinearLongitude() const;
+    friend std::ostream& operator<<(std::ostream& os, const GeoCoordinate& myRef) {
+        os << " lon "  << myRef.m_longitude << " lat " << myRef.m_latitude << myRef.m_coordRef;
+        return os;
+    }
+
 private:
     double m_longitude{0.0};
     double m_latitude{0.0};

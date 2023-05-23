@@ -127,21 +127,19 @@ public:
     void text(Glib::Markup::ParseContext& context,
         const Glib::ustring& text);
 
-    Glib::ustring get_latest() {
-        return m_timeDimEnd;
-    }
+    Glib::DateTime getLatestTime();
     Glib::RefPtr<Gdk::Pixbuf> get_legend() override;
     void set_legend(Glib::RefPtr<Gdk::Pixbuf>& legend) override;
     Glib::ustring get_description() override;
-    bool latest(Glib::DateTime& datetime, bool local) override;
+    bool latest(Glib::DateTime& datetime) override;
     bool is_displayable() override;
     Glib::ustring get_legend_url();
     CoordRefSystem getCoordRefSystem();
     bool is_latest();
-
+protected:
 private:
     void parseDimension(const Glib::ustring& text);
-    uint64_t periodSeconds(const Glib::ustring& timeDimPeriod);
+    int periodSeconds(const Glib::ustring& timeDimPeriod);
 
     Glib::ustring m_abstract;
     Glib::ustring m_keywords;
@@ -150,7 +148,7 @@ private:
     Glib::ustring m_timeDimStart;
     Glib::ustring m_timeDimEnd;
     Glib::ustring m_timeDimPeriod;
-    uint32_t m_timePeriodSec;
+    int m_timePeriodSec;
     ParseContext m_context{ParseContext::None};
     std::stack<ParseContext>  m_parseLevel;
     std::vector<Glib::ustring> m_legends;
@@ -163,22 +161,14 @@ class WebMapService
 : public Weather
 {
 public:
-    WebMapService(WeatherConsumer* consumer, const Glib::ustring& name, const Glib::ustring& address, int delaySec, uint32_t minPeriodSec);
+    WebMapService(WeatherConsumer* consumer, const std::shared_ptr<WebMapServiceConf>& mapServiceConf, int minPeriodSec);
     virtual ~WebMapService() = default;
 
-    Glib::ustring getAddress()
+    std::shared_ptr<WebMapServiceConf> getServiceConf()
     {
-        return m_address;
+        return m_mapServiceConf;
     }
-    Glib::ustring getName()
-    {
-        return m_name;
-    }
-    int getDelaySec()
-    {
-        return m_delaySec;
-    }
-    uint32_t getMinPeriodSec()
+    int getMinPeriodSec()
     {
         return m_minPeriodSec;
     }
@@ -188,12 +178,10 @@ protected:
     void request(const Glib::ustring& productId) override;
     void check_product(const Glib::ustring& weatherProductId) override;
     Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product);
-
+    std::shared_ptr<WebMapServiceConf> m_mapServiceConf;
 private:
-    Glib::ustring m_address;
-    Glib::ustring m_name;
-    int m_delaySec;
-    uint32_t m_minPeriodSec;
+
+    int m_minPeriodSec;
 };
 
 class NXMLParser : public Glib::Markup::Parser {

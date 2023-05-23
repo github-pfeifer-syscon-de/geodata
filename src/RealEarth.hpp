@@ -83,7 +83,7 @@ public:
     }
     bool is_displayable() override;
     bool is_latest(const Glib::ustring& latest);
-    bool latest(Glib::DateTime& datetime, bool local) override;
+    bool latest(Glib::DateTime& datetime) override;
     void set_extent(JsonObject* entry);
 
     Glib::RefPtr<Gdk::Pixbuf> get_legend() override;

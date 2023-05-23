@@ -34,7 +34,7 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
         , const GeoBounds& bounds
         , int pixX, int pixY, int pixWidth, int pixHeight
         , std::shared_ptr<WebMapProduct>& product)
-: WeatherImageRequest(webMapService->getAddress(), "")
+: WeatherImageRequest(webMapService->getServiceConf()->getAddress(), "")
 , m_webMapService{webMapService}
 , m_bounds{bounds}
 , m_pixX{pixX}
@@ -51,11 +51,12 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     addQuery("HEIGHT", Glib::ustring::sprintf("%d", m_pixHeight));
     addQuery("WIDTH", Glib::ustring::sprintf("%d", m_pixWidth));
     addQuery("TRANSPARENT", "TRUE");    // prefer transparent
-    if (!product->get_latest().empty()) {
+    auto latest = product->getLatestTime();
+    if (latest) {
         #ifdef WEATHER_DEBUG
-        std::cout << "using time " << product->get_latest() << std::endl;
+        std::cout << "using time " << latest.format_iso8601() << std::endl;
         #endif
-        addQuery("TIME", product->get_latest());
+        addQuery("TIME", latest.format_iso8601());
     }
     Glib::ustring bound = m_bounds.printValue(',');
     #ifdef WEATHER_DEBUG
@@ -107,6 +108,7 @@ WebMapImageRequest::mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pix
 
 WebMapProduct::WebMapProduct(WebMapService* webMapService)
 : WeatherProduct()
+, m_timePeriodSec{webMapService->getMinPeriodSec()}
 , m_webMapService{webMapService}
 {
     m_parseLevel.push(ParseContext::None);  // keep this so we always return something on pop
@@ -402,6 +404,20 @@ WebMapProduct::parseDimension(const Glib::ustring& text)
                   << std::endl;
         #endif
     }
+    else {  // alternative discrete values
+        parts.clear();
+        StringUtils::split(text, ',', parts);
+        if (parts.size() >= 2) {
+            for (uint32_t i = 0; i < parts.size(); ++i) {
+                if (m_timeDimStart.empty()) {
+                    m_timeDimStart = parts[i];
+                }
+                else {
+                    m_timeDimEnd = parts[i];
+                }
+            }
+        }
+    }
 }
 
 
@@ -417,10 +433,10 @@ EXAMPLE 3 PT2H — 2 hours
 EXAMPLE 4 PT1.5S — 1.5 seconds
  * but no one elaborates on just P ...(when we guess from end that is ~30min behind now, what just may be delay, no live images :( )
 */
-uint64_t
+int
 WebMapProduct::periodSeconds(const Glib::ustring& timeDimPeriod)
 {
-    uint64_t timePeriodSec{0};
+    int timePeriodSec{0};
     int val = 0;
     bool time = false;
     for (uint32_t i = 0; i < timeDimPeriod.size(); ++i) {
@@ -483,26 +499,24 @@ WebMapProduct::is_displayable()
 bool
 WebMapProduct::is_latest()
 {
-    if (!m_timeDimEnd.empty()) {
-        auto utcLatest = Glib::DateTime::create_from_iso8601(m_timeDimEnd, Glib::TimeZone::create_utc());
-        if (utcLatest) {
-            utcLatest = utcLatest.add_seconds(m_timePeriodSec);
-            auto now = Glib::DateTime::create_now_utc();
-            now = now.add_seconds(-m_webMapService->getDelaySec()); // compare with past as service introduce delay
-            #ifdef WEATHER_DEBUG
-            std::cout << "WebMapProduct::is_latest "
-                      << get_id()
-                      << " period " << m_timePeriodSec
-                      << " dimEnd " << m_timeDimEnd
-                      << " latest " << utcLatest.format_iso8601()
-                      << " now " << now.format_iso8601()
-                      << " cmp " << now.compare(utcLatest)
-                      << std::endl;
-            #endif
-            if (now.compare(utcLatest) >= 0) {   // we passed the expected time
-                m_timeDimEnd = utcLatest.format_iso8601();
-                return false;
-            }
+    Glib::DateTime utcLatest = getLatestTime();
+    if (utcLatest) {
+        utcLatest = utcLatest.add_seconds(m_timePeriodSec);
+        auto now = Glib::DateTime::create_now_utc();
+        now = now.add_seconds(-m_webMapService->getServiceConf()->getDelaySec()); // compare with past as service introduce delay
+        #ifdef WEATHER_DEBUG
+        std::cout << "WebMapProduct::is_latest "
+                  << get_id()
+                  << " period " << m_timePeriodSec
+                  << " dimEnd " << m_timeDimEnd
+                  << " latest " << utcLatest.format_iso8601()
+                  << " now " << now.format_iso8601()
+                  << " cmp " << now.compare(utcLatest)
+                  << std::endl;
+        #endif
+        if (now.compare(utcLatest) >= 0) {   // we passed the expected time
+            m_timeDimEnd = utcLatest.format_iso8601();
+            return false;
         }
     }
     return true;    // cant tell or already latest
@@ -521,37 +535,58 @@ WebMapProduct::set_legend(Glib::RefPtr<Gdk::Pixbuf>& legendImage)
     m_signal_legend.emit(m_legendImage);
 }
 
-bool
-WebMapProduct::latest(Glib::DateTime& dateTime, bool local)
+Glib::DateTime
+WebMapProduct::getLatestTime()
 {
-   if (!m_timeDimEnd.empty()) {
+    Glib::DateTime latestTime;
+    if (!m_timeDimEnd.empty()) {
         auto iso8601 = m_timeDimEnd;
-        if (local) {    // as the string tz has precedence remove it
-            auto pos = iso8601.find("Z");
-            if (pos != Glib::ustring::npos) {
-                iso8601.erase(pos, 1);
+        auto tz = Glib::TimeZone::create_utc();
+        latestTime = Glib::DateTime::create_from_iso8601(iso8601, tz);
+        if (m_webMapService->getServiceConf()->isViewCurrentTime()) {
+            auto now = Glib::DateTime::create_now_utc();
+            #ifdef WEATHER_DEBUG
+            std::cout << "WebMapProduct::getLatestTime"
+                         << " now " << now.format_iso8601()
+                         << " delay " << m_webMapService->getServiceConf()->getDelaySec()
+                         << " period " << m_timePeriodSec << std::endl;
+            #endif
+            now = now.add_seconds(-m_webMapService->getServiceConf()->getDelaySec()); // compare with past as service introduce delay
+            while (latestTime.compare(now) > 0) {                   // dwd will include prognosis but we are more so keep rolling
+                latestTime = latestTime.add_seconds(-m_timePeriodSec);
             }
         }
-        auto tz = local ? Glib::TimeZone::create_local() : Glib::TimeZone::create_utc();
-        auto utc = Glib::DateTime::create_from_iso8601(iso8601, tz);
-        if (utc) {
-            //std::cout << "RealEarthProduct::latest parsed " << iso8601 << " to utc " <<  utc.format("%F-%T") << std::endl;
-            dateTime = utc.to_local();
-            //std::cout << "RealEarthProduct::latest local " <<  dateTime.format("%F-%T") << std::endl;
-            return true;
-        }
-        else {
-            std::cout << "WebMapProduct::latest latest " << iso8601 << " not parsed" << std::endl;
-        }
+    }
+    return latestTime;
+}
+
+bool
+WebMapProduct::latest(Glib::DateTime& dateTime)
+{
+    Glib::DateTime latestTime = getLatestTime();
+    if (latestTime) {
+        //std::cout << "WebMapProduct::latest parsed " << iso8601 << " to utc " <<  utc.format("%F-%T") << std::endl;
+        dateTime = latestTime.to_local();
+        //std::cout << "WebMapProduct::latest local " <<  dateTime.format("%F-%T") << std::endl;
+        return true;
+    }
+    else {
+        std::cout << "WebMapProduct::latest latest " << m_timeDimEnd << " not parsed" << std::endl;
     }
     return false;
 }
 
+WebMapService::WebMapService(WeatherConsumer* consumer, const std::shared_ptr<WebMapServiceConf>& mapServiceConf, int minPeriodSec)
+: Weather(consumer)
+, m_mapServiceConf{mapServiceConf}
+, m_minPeriodSec{minPeriodSec}
+{
+}
 
 void
 WebMapService::capabilities()
 {
-    auto message = std::make_shared<SpoonMessageDirect>(getAddress(), "");
+    auto message = std::make_shared<SpoonMessageDirect>(getServiceConf()->getAddress(), "");
     message->addQuery("service", "WMS");
     message->addQuery("version", "1.3.0");
     message->addQuery("request", "GetCapabilities");
@@ -609,16 +644,6 @@ WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int sta
     std::cout << "WebMapService::inst_on_capabilities_callback got " << m_products.size() << " products usable " << usable << std::endl;
     #endif
     m_signal_products_completed.emit();
-}
-
-
-WebMapService::WebMapService(WeatherConsumer* consumer, const Glib::ustring& name, const Glib::ustring& address, int delaySec, uint32_t minPeriodSec)
-: Weather(consumer)
-, m_address{address}
-, m_name{name}
-, m_delaySec{delaySec}
-, m_minPeriodSec{minPeriodSec}
-{
 }
 
 void
