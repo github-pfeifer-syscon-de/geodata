@@ -18,7 +18,6 @@
 #pragma once
 
 #include <glibmm.h>
-#include <gtkmm.h>
 #include <memory>
 #include <libsoup/soup.h>
 #include <map>

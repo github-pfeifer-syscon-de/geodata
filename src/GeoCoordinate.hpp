@@ -19,6 +19,7 @@
 
 #include <glibmm.h>
 #include <cmath>
+#include <GenericGlmCompat.hpp>
 
 class CoordRefSystem {
 public:
