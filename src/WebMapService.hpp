@@ -199,7 +199,6 @@ protected:
     void on_error(Glib::Markup::ParseContext& context,
 		const Glib::MarkupError& error) override;
 protected:
-    Glib::ustring replaceAll(const Glib::ustring& text, const Glib::ustring& replace, const Glib::ustring& with);
 
 private:
     WebMapService *m_webMapService;

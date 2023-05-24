@@ -387,7 +387,7 @@ WebMapProduct::text(Glib::Markup::ParseContext& context, const Glib::ustring& te
 void
 WebMapProduct::parseDimension(const Glib::ustring& text)
 {
-    std::vector<std::string> parts;
+    std::vector<Glib::ustring> parts;
     StringUtils::split(text, '/', parts);
     if (parts.size() == 3) {
         m_timeDimStart = parts[0];
@@ -812,23 +812,10 @@ NXMLParser::on_text(Glib::Markup::ParseContext& context,
 		const Glib::ustring& text)
 {
     if (m_webMapProduct) {
-        auto repl = replaceAll(text, "&#13;", "\r");
-        repl = replaceAll(repl, "&#10;", "\n");
+        auto repl = StringUtils::replaceAll(text, "&#13;", "\r");
+        repl = StringUtils::replaceAll(repl, "&#10;", "\n");
         m_webMapProduct->text(context, repl);
     }
-}
-
-// allow replacement of some extra entities
-Glib::ustring
-NXMLParser::replaceAll(const Glib::ustring& text, const Glib::ustring& replace, const Glib::ustring& with)
-{
-    Glib::ustring ret = text;
-    size_t pos = 0;
-    while ((pos = ret.find(replace, pos)) != Glib::ustring::npos) {
-         ret.replace(pos, replace.length(), with);
-         pos += with.length();
-    }
-    return ret;
 }
 
 
