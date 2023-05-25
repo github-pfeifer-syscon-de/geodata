@@ -15,7 +15,7 @@ libgeodata_la_CFLAGS = -Wall
 lib_LTLIBRARIES = libgeodata.la
 
 libgeodata_la_CXXFLAGS = \
-	-Wall
+	-Wall -Wpedantic
 
 libgeodata_la_LDFLAGS = \
 	@EXTRA_LDFLAGS@ \
