@@ -25,7 +25,11 @@ AX_CHECK_ENABLE_DEBUG([info], [DEBUG], [RELEASE], [IS-RELEASE])
 AC_PROG_CC
 AC_PROG_CPP
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX([20], [noext], [mandatory])
+dnl we do not depend on c++20 in just one place (glglobe),
+dnl (did choose it for consistency across libs and programs)
+dnl so if you happen to find yourself in the need to use
+dnl a older compiler c++17, should work as well.
+AX_CXX_COMPILE_STDCXX([20], [noext], [optional])
 
 AC_DISABLE_STATIC
 
