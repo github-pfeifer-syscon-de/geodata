@@ -30,7 +30,6 @@ libgeodata_la_SOURCES = \
 	WebMapService.cpp \
 	GeoCoordinate.cpp \
 	MapProjection.cpp \
-	LocaleContext.cpp \
 	GeoJsonSimplifyHandler.cpp \
 	GeoJson.cpp
 
@@ -53,7 +52,6 @@ pkginclude_HEADERS = \
 	WebMapService.hpp \
 	GeoCoordinate.hpp \
 	MapProjection.hpp \
-	LocaleContext.hpp \
 	GeoJsonSimplifyHandler.hpp \
 	GeoJson.hpp
 
