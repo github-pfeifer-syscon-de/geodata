@@ -5,6 +5,7 @@ AM_CPPFLAGS = \
 	-DPACKAGE_SRC_DIR=\""$(srcdir). "\" \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
 	$(GENERICGLM_CFLAGS) \
+	$(GENERICIMG_CFLAGS) \
 	$(GTKMM_CFLAGS) \
 	$(GLIBMM_CFLAGS) \
 	$(LIBSOUP3_CFLAGS) \
@@ -35,6 +36,7 @@ libgeodata_la_SOURCES = \
 
 libgeodata_la_LIBADD =  \
 	$(GENERICGLM_LIBS) \
+	$(GENERICIMG_LIBS) \
 	$(GTKMM_LIBS) \
 	$(GLIBMM_LIBS) \
 	$(LIBSOUP3_LIBS) \
