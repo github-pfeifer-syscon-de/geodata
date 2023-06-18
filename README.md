@@ -8,7 +8,7 @@ At the moment the following satellite image services are supported:
   <li>Deutscher Wetterdienst, with a surprisingly wide coverage (but for some we lack the coordinate transform magic)</li>
 </ul>
 Additional services supporting WebMapService shoud be easy to add.<br>
-Requirs genericImg&genericGlm so build&install there first.<br>
+Requirs genericImg&genericGlm so build&install these first.<br>
 To build use any (lin)ux:
 <pre>
 autoreconf -fis
