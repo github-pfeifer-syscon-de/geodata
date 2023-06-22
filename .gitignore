@@ -63,3 +63,4 @@
 /pkg/
 /src/.deps/libgeodata_la-Weather.Tpo
 /src/.deps/
+/src/geodata.pc

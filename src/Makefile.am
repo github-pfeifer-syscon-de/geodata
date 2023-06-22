@@ -56,7 +56,7 @@ pkginclude_HEADERS = \
 	GeoJson.hpp
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = geodata-$(VERSION).pc
+pkgconfig_DATA = geodata.pc
 
 EXTRA_DIST = \
-	geodata-$(VERSION).pc.in
+	geodata.pc.in
