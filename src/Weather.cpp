@@ -18,10 +18,9 @@
 #include <iostream>
 #include <iomanip>
 #include <strings.h>
-
+#include <JsonHelper.hpp>
 
 #include "Weather.hpp"
-#include "JsonHelper.hpp"
 
 WebMapServiceConf::WebMapServiceConf(const Glib::ustring& name, const Glib::ustring& address, int delay_sec, const Glib::ustring& type, bool viewCurrentTime)
 : m_name{name}

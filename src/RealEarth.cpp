@@ -20,10 +20,10 @@
 #include <iomanip>
 #include <strings.h>
 #include <memory.h>
+#include <JsonHelper.hpp>
 
 
 #include "RealEarth.hpp"
-#include "JsonHelper.hpp"
 #include "MapProjection.hpp"
 #include "LocaleContext.hpp"
 

@@ -24,7 +24,6 @@ libgeodata_la_LDFLAGS = \
 
 libgeodata_la_SOURCES = \
 	Spoon.cpp \
-	JsonHelper.cpp \
 	Weather.cpp \
 	RealEarth.cpp \
 	WebMapService.cpp \
@@ -46,7 +45,6 @@ libgeodata_la_LIBADD =  \
 ##   (include_HEADERS  will use #install#/include)
 pkginclude_HEADERS = \
 	Spoon.hpp \
-	JsonHelper.hpp \
 	Weather.hpp \
 	RealEarth.hpp \
 	WebMapService.hpp \
