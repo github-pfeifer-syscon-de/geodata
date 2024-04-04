@@ -17,8 +17,8 @@
 #include <sstream>      // std::ostringstream
 #include <iostream>
 #include <iomanip>
-#include <strings.h>
 #include <JsonHelper.hpp>
+#include <StringUtils.hpp>
 
 #include "Weather.hpp"
 
@@ -31,8 +31,9 @@ WebMapServiceConf::WebMapServiceConf(const Glib::ustring& name, const Glib::ustr
 {
 }
 
-WeatherImageRequest::WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path)
+WeatherImageRequest::WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path, WeatherLog* weatherLog)
 : SpoonMessageStream(host, path)
+, m_weatherLog{weatherLog}
 {
 }
 
@@ -55,7 +56,9 @@ WeatherImageRequest::get_pixbuf()
                     break;
                 }
                 if (error) {
-                    std::cout << "Error reading http " << error->message << std::endl;
+                    if (m_weatherLog) {
+                        m_weatherLog->logMsg(psc::log::Level::Error, Glib::ustring::sprintf("Error reading http %s", error->message));
+                    }
                     g_error_free(error);
                     break;
                 }
@@ -69,11 +72,15 @@ WeatherImageRequest::get_pixbuf()
             return loader->get_pixbuf();
         }
         catch (const Glib::Error& ex) {    // Gdk::PixbufError
-            std::cout << "Error reading image pixmap "  << ex.what() << std::endl;
+            if (m_weatherLog) {
+                m_weatherLog->logMsg(psc::log::Level::Error, Glib::ustring::sprintf("Error reading image pixmap %s", ex.what()));
+            }
         }
     }
     else {
-        std::cout << "WeatherRequest::get_pixbuf no data " << std::endl;
+        if (m_weatherLog) {
+            m_weatherLog->logMsg(psc::log::Level::Error, "WeatherRequest::get_pixbuf no data ");
+        }
     }
     return Glib::RefPtr<Gdk::Pixbuf>();
 }
@@ -108,20 +115,33 @@ Weather::get_consumer()
     return m_consumer;
 }
 
+void Weather::logMsg(
+      psc::log::Level level
+    , const Glib::ustring& msg
+    , std::source_location source)
+{
+    if (m_log) {
+        m_log->log(level, msg, source);
+    }
+    else {
+        std::cout << source << msg << std::endl;
+    }
+}
+
 void
 Weather::inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessageStream* message)
 {
     if (!error.empty()) {
-        std::cout << "error image " << error << std::endl;
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("error image %s", error));
         return;
     }
     if (status != SpoonMessage::OK) {
-        std::cout << "Error image response " << status << std::endl;
+        logMsg(psc::log::Level::Warn,Glib::ustring::sprintf("Error image response %d", status));
         return;
     }
     auto stream = message->get_stream();
     if (!stream) {
-        std::cout << "Error image no data" << std::endl;
+        logMsg(psc::log::Level::Warn, "Error image no data");
         return;
     }
     auto request = dynamic_cast<WeatherImageRequest*>(message);
@@ -131,7 +151,7 @@ Weather::inst_on_image_callback(const Glib::ustring& error, int status, SpoonMes
         }
     }
     else {
-        std::cout << "Could not reconstruct weather request" << std::endl;
+        logMsg(psc::log::Level::Warn, "Could not reconstruct weather request");
     }
 }
 
@@ -139,16 +159,16 @@ void
 Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message, std::shared_ptr<WeatherProduct> product)
 {
    if (!error.empty()) {
-        std::cout << "error legend " << error << std::endl;
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("error legend %s", error));
         return;
     }
     if (status != SpoonMessage::OK) {
-        std::cout << "Error legend response " << status << std::endl;
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("Error legend response %d", status));
         return;
     }
     auto data = message->get_bytes();
     if (!data) {
-        std::cout << "Error legend no data" << std::endl;
+        logMsg(psc::log::Level::Warn, "Error legend no data");
         return;
     }
     try {
@@ -169,11 +189,11 @@ Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMe
             }
         }
         else {
-            std::cout << "Error loading legend empty pixbuf" << std::endl;
+            logMsg(psc::log::Level::Warn, "Error loading legend empty pixbuf");
         }
     }
     catch (const Glib::Error& ex) {
-        std::cout << "Error reading legend pixmap "  << ex.what() << std::endl;
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("Error reading legend pixmap %s",  ex.what()));
     }
 }
 
@@ -249,4 +269,10 @@ Weather::type_signal_products_completed
 Weather::signal_products_completed()
 {
     return m_signal_products_completed;
+}
+
+void
+Weather::setLog(const std::shared_ptr<psc::log::Log>& log)
+{
+    m_log = log;
 }

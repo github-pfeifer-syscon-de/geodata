@@ -15,7 +15,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glm/trigonometric.hpp>
 #include <iostream>
 #include <cmath>
 

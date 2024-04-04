@@ -34,7 +34,7 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
         , const GeoBounds& bounds
         , int pixX, int pixY, int pixWidth, int pixHeight
         , std::shared_ptr<WebMapProduct>& product)
-: WeatherImageRequest(webMapService->getServiceConf()->getAddress(), "")
+: WeatherImageRequest(webMapService->getServiceConf()->getAddress(), "", webMapService)
 , m_webMapService{webMapService}
 , m_bounds{bounds}
 , m_pixX{pixX}
@@ -602,16 +602,16 @@ void
 WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message)
 {
     if (!error.empty()) {
-        std::cout << "WebMapService::inst_on_capabilities_callback capabilities " << error << std::endl;
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback capabilities %s", error));
         return;
     }
     if (status != SpoonMessage::OK) {
-        std::cout << "WebMapService::inst_on_capabilities_callback capabilities response " << status << std::endl;
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback capabilities response %d", status));
         return;
     }
     auto data = message->get_bytes();
     if (!data) {
-        std::cout << "WebMapService::inst_on_capabilities_callback capabilities no data" << std::endl;
+        logMsg(psc::log::Level::Warn, "WebMapService::inst_on_capabilities_callback capabilities no data");
         return;
     }
 
@@ -628,7 +628,7 @@ WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int sta
         context.end_parse();
     }
     catch (const Glib::MarkupError& ex) {
-        std::cerr << "WebMapService::inst_on_capabilities_callback error " << ex.what() << std::endl;
+        logMsg(psc::log::Level::Error, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback error %s", ex.what()));
     }
     #ifdef WEATHER_DEBUG
     int usable = 0;
@@ -752,7 +752,7 @@ WebMapService::get_legend(std::shared_ptr<WeatherProduct>& product)
     if (!legend) {
         auto webMapProduct = std::dynamic_pointer_cast<WebMapProduct>(product);
         if (!webMapProduct) {
-            std::cerr << "WebMapService::get_legend got wrong product type" << std::endl;
+            logMsg(psc::log::Level::Error, "WebMapService::get_legend got wrong product type");
             return Glib::RefPtr<Gdk::Pixbuf>();
         }
         auto legendURL = webMapProduct->get_legend_url();

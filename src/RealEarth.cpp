@@ -35,7 +35,7 @@ RealEarthImageRequest::RealEarthImageRequest(RealEarth* realEarth
     , double south, double west, double north, double east
     , int pixX, int pixY, int pixWidth, int pixHeight
     , std::shared_ptr<RealEarthProduct>& product)
-: WeatherImageRequest(realEarth->get_base_url(), "api/image")
+: WeatherImageRequest(realEarth->get_base_url(), "api/image", realEarth)
 , m_realEarth{realEarth}
 , m_south{south}
 , m_west{west}

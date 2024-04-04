@@ -22,11 +22,18 @@
 #include <memory>
 #include <json-glib/json-glib.h>
 #include <vector>
+#include <Log.hpp>
 
 #include "Spoon.hpp"
 #include "GeoCoordinate.hpp"
 
 #undef WEATHER_DEBUG
+
+class WeatherLog
+{
+public:
+    void logMsg(psc::log::Level level, const Glib::ustring& msg, std::source_location source = std::source_location::current());
+};
 
 class WebMapServiceConf {
 public:
@@ -89,11 +96,13 @@ class WeatherImageRequest
 : public SpoonMessageStream
 {
 public:
-    WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path);
+    WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path, WeatherLog* weatherLog);
     virtual ~WeatherImageRequest() = default;
     Glib::RefPtr<Gdk::Pixbuf> get_pixbuf();
     virtual void mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pixbuf>& weather) = 0;
-
+protected:
+    WeatherLog* m_weatherLog;
+private:
 };
 
 class WeatherProduct
@@ -146,6 +155,7 @@ private:
 
 // used to implement a single weather service
 class Weather
+: public WeatherLog
 {
 public:
     Weather(WeatherConsumer* consumer);
@@ -165,11 +175,14 @@ public:
 
     using type_signal_products_completed = sigc::signal<void()>;
     type_signal_products_completed signal_products_completed();
+    void setLog(const std::shared_ptr<psc::log::Log>& log);
+    void logMsg(psc::log::Level level, const Glib::ustring& msg, std::source_location source = std::source_location::current());
 protected:
     type_signal_products_completed m_signal_products_completed;
     WeatherConsumer* m_consumer;
     std::map<Glib::ustring, std::shared_ptr<WeatherProduct>> m_products;
     std::shared_ptr<SpoonSession> getSpoonSession();
+    std::shared_ptr<psc::log::Log> m_log;
 private:
     std::shared_ptr<SpoonSession> spoonSession;
 
