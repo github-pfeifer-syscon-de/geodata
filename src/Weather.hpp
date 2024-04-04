@@ -32,7 +32,7 @@
 class WeatherLog
 {
 public:
-    void logMsg(psc::log::Level level, const Glib::ustring& msg, std::source_location source = std::source_location::current());
+    virtual void logMsg(psc::log::Level level, const Glib::ustring& msg, std::source_location source = std::source_location::current()) = 0;
 };
 
 class WebMapServiceConf {
@@ -176,7 +176,7 @@ public:
     using type_signal_products_completed = sigc::signal<void()>;
     type_signal_products_completed signal_products_completed();
     void setLog(const std::shared_ptr<psc::log::Log>& log);
-    void logMsg(psc::log::Level level, const Glib::ustring& msg, std::source_location source = std::source_location::current());
+    void logMsg(psc::log::Level level, const Glib::ustring& msg, std::source_location source = std::source_location::current()) override;
 protected:
     type_signal_products_completed m_signal_products_completed;
     WeatherConsumer* m_consumer;
