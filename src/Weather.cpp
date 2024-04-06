@@ -42,9 +42,7 @@ Glib::RefPtr<Gdk::Pixbuf>
 WeatherImageRequest::get_pixbuf()
 {
     GInputStream *stream = get_stream();
-    #ifdef WEATHER_DEBUG
-    std::cout << "WeatherImageRequest::get_pixbuf stream " << std::hex << stream << std::dec << std::endl;
-    #endif
+    m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("pixbuf stream %x", stream));
     if (stream) {
         try {
             Glib::RefPtr<Gdk::PixbufLoader> loader = Gdk::PixbufLoader::create();
@@ -64,9 +62,7 @@ WeatherImageRequest::get_pixbuf()
                 }
                 loader->write(data, len);
             }
-            #ifdef WEATHER_DEBUG
-            std::cout << "WeatherImageRequest::get_pixbuf close " << std::endl;
-            #endif
+            m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("pixbuf close %x", stream));
             g_input_stream_close(stream, nullptr, nullptr);
             loader->close();
             return loader->get_pixbuf();
@@ -177,13 +173,7 @@ Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMe
         loader->close();
         if (loader->get_pixbuf()) {
             auto pixbuf = loader->get_pixbuf();
-            #ifdef WEATHER_DEBUG
-            std::cout << "Loading legend pixbuf"
-                      << " chan " << pixbuf->get_n_channels()
-                      << " width " << pixbuf->get_width()
-                      << " height " << pixbuf->get_height()
-                      << std::endl;
-            #endif
+            logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("Loading legend pixbuf chan %d width %d height %d", pixbuf->get_n_channels(), pixbuf->get_width(), pixbuf->get_height()));
             if (product) {
                 product->set_legend(pixbuf);
             }
@@ -220,12 +210,9 @@ Weather::get_products()
 {
     std::vector<std::shared_ptr<WeatherProduct>> weatherProducts;
     weatherProducts.reserve(m_products.size());
-    for (auto prod : m_products) {
+    for (auto& prod : m_products) {
         weatherProducts.push_back(prod.second);
     }
-    #ifdef WEATHER_DEBUG
-    std::cout << "Weather::get_products " << weatherProducts.size() << std::endl;
-    #endif
     return weatherProducts;
 }
 
