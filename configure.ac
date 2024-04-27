@@ -43,7 +43,7 @@ PKG_CHECK_MODULES(GTKMM, [gtkmm-3.0])
 
 PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4 giomm-2.4])
 
-PKG_CHECK_MODULES([GENERICGLM],[genericglm >= 0.2.6])
+PKG_CHECK_MODULES([GENERICGLM],[genericglm >= 0.3.1])
 PKG_CHECK_MODULES([GENERICIMG],[genericimg >= 0.3.0])
 
 PKG_CHECK_MODULES(LIBSOUP3, [libsoup-3.0])
