@@ -8,6 +8,6 @@ includedir=@includedir@/geodata
 Name: libgeodata
 Description: Basic geo services abstraction
 Version: @VERSION@
-Requires: gtkmm-3.0 glibmm-2.4 giomm-2.4 genericglm >= 0.2.6 genericimg >= 0.3.1 libsoup-3.0 json-glib-1.0
+Requires: @depend_gtkmm@ @depend_glibmm@ @depend_genericglm@ @depend_genericglm@ @depend_libsoup@ @depend_jsonglib1@
 Libs: -L${libdir} -lgeodata
 Cflags: -I${includedir}

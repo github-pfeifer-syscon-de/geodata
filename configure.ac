@@ -38,16 +38,27 @@ LT_INIT
 AC_CANONICAL_HOST
 AC_MSG_NOTICE([host_os $host_os])
 
+depend_gtkmm="gtkmm-3.0"
+AC_SUBST([depend_gtkmm])
+PKG_CHECK_MODULES([GTKMM], [$depend_gtkmm])
 
-PKG_CHECK_MODULES(GTKMM, [gtkmm-3.0])
+depend_glibmm="glibmm-2.4 giomm-2.4"
+AC_SUBST([depend_glibmm])
+PKG_CHECK_MODULES([GLIBMM], [$depend_glibmm])
 
-PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4 giomm-2.4])
+depend_genericimg="genericglm >= 0.3.1"
+AC_SUBST([depend_genericimg])
+PKG_CHECK_MODULES([GENERICIMG],[$depend_genericimg])
+depend_genericglm="genericimg >= 0.3.0"
+AC_SUBST([depend_genericglm])
+PKG_CHECK_MODULES([GENERICGLM],[$depend_genericglm])
 
-PKG_CHECK_MODULES([GENERICGLM],[genericglm >= 0.3.1])
-PKG_CHECK_MODULES([GENERICIMG],[genericimg >= 0.3.0])
-
-PKG_CHECK_MODULES(LIBSOUP3, [libsoup-3.0])
-PKG_CHECK_MODULES(JSONGLIB1, [json-glib-1.0])
+depend_libsoup=libsoup-3.0
+AC_SUBST([depend_libsoup])
+PKG_CHECK_MODULES(LIBSOUP3, [$depend_libsoup])
+depend_jsonglib1="json-glib-1.0"
+AC_SUBST([depend_jsonglib1])
+PKG_CHECK_MODULES(JSONGLIB1, [$depend_jsonglib1])
 
 if test "$host_os" = "mingw32" ; then
     AC_SUBST(EXTRA_LDFLAGS, "-no-undefined")
