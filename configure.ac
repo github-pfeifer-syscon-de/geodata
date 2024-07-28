@@ -28,7 +28,7 @@ AC_PROG_CXX
 dnl we depend on c++20 in just one place (glglobe),
 dnl (did choose it for consistency across libs and programs)
 dnl so if you happen to find yourself in the need to use
-dnl a older compiler c++17, may work as well.
+dnl a older compiler c++17, may work as well with some adaptions.
 AX_CXX_COMPILE_STDCXX([20], [noext], [optional])
 
 AC_DISABLE_STATIC
@@ -38,18 +38,16 @@ LT_INIT
 AC_CANONICAL_HOST
 AC_MSG_NOTICE([host_os $host_os])
 
-depend_gtkmm="gtkmm-3.0"
-AC_SUBST([depend_gtkmm])
-PKG_CHECK_MODULES([GTKMM], [$depend_gtkmm])
+dnl already imported with genericImg
+dnl PKG_CHECK_MODULES([GTKMM], [gtkmm-3.0])
 
-depend_glibmm="glibmm-2.4 giomm-2.4"
-AC_SUBST([depend_glibmm])
-PKG_CHECK_MODULES([GLIBMM], [$depend_glibmm])
+dnl already imported with genericImg
+dnl PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4 giomm-2.4])
 
-depend_genericimg="genericglm >= 0.3.1"
+depend_genericimg="genericimg >= 0.3.1"
 AC_SUBST([depend_genericimg])
 PKG_CHECK_MODULES([GENERICIMG],[$depend_genericimg])
-depend_genericglm="genericimg >= 0.3.0"
+depend_genericglm="genericglm >= 0.3.1"
 AC_SUBST([depend_genericglm])
 PKG_CHECK_MODULES([GENERICGLM],[$depend_genericglm])
 

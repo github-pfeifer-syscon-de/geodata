@@ -8,6 +8,6 @@ includedir=@includedir@/geodata
 Name: libgeodata
 Description: Basic geo services abstraction
 Version: @VERSION@
-Requires: @depend_gtkmm@ @depend_glibmm@ @depend_genericglm@ @depend_genericglm@ @depend_libsoup@ @depend_jsonglib1@
+Requires: @depend_genericimg@ @depend_genericglm@ @depend_libsoup@ @depend_jsonglib1@
 Libs: -L${libdir} -lgeodata
 Cflags: -I${includedir}
