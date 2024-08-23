@@ -24,11 +24,11 @@
 #include "GeoCoordinate.hpp"
 
 
-// test conversion functions for c-locale
+// test conversion functions for C-locale
 static bool
 convertTest()
 {
-    std::cout << "geoTest --------------" << std::endl;
+    std::cout << "convertTest --------------" << std::endl;
     auto str = GeoCoordinate::formatDouble(3.141527, std::chars_format::fixed, 4);
     std::cout << "fmt " << str << std::endl;
     if (str != "3.1415") {
@@ -41,7 +41,7 @@ convertTest()
         std::cout << "val not matching" << std::endl;
         return false;
     }
-    std::cout << "geoTest --------------" << std::endl;
+    std::cout << "convertTest --------------" << std::endl;
     return true;
 }
 
