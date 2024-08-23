@@ -25,7 +25,7 @@
 
 #include "RealEarth.hpp"
 #include "MapProjection.hpp"
-#include "LocaleContext.hpp"
+#include "GeoCoordinate.hpp"
 
 // it might be an option to use WMS here as well
 //   but the current implementation has some nice features like query avail times...
@@ -56,15 +56,11 @@ RealEarthImageRequest::build_url(std::shared_ptr<RealEarthProduct>& product)
 {
     addQuery("products", product->get_id());
     Glib::ustring bound;
-    LocaleContext localectx(LC_NUMERIC);
-    if (localectx.set(LocaleContext::en_US)) {
-        bound = Glib::ustring::sprintf("%.3f,%.3f,%.3f,%.3f"
-                , m_south, m_west, m_north, m_east);
-    }
-    else {
-        bound = Glib::ustring::sprintf("%d,%d,%d,%d"
-            ,(int)m_south, (int)m_west, (int)m_north, (int)m_east);
-    }
+    bound = Glib::ustring::sprintf("%s,%s,%s,%s"
+            , GeoCoordinate::formatDouble(m_south)
+            , GeoCoordinate::formatDouble(m_west)
+            , GeoCoordinate::formatDouble(m_north)
+            , GeoCoordinate::formatDouble(m_east));
     #ifdef WEATHER_DEBUG
     std::cout << "Bounds " << bound << std::endl;
     #endif

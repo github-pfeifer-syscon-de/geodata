@@ -21,7 +21,6 @@
 #include <limits>
 
 #include "WebMapService.hpp"
-#include "LocaleContext.hpp"
 #include "MapProjection.hpp"
 
 // docs (even if the examples are outdated):

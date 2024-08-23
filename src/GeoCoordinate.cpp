@@ -16,9 +16,9 @@
  */
 
 #include <iostream>
+#include <array>
 
 #include "GeoCoordinate.hpp"
-#include "LocaleContext.hpp"
 #include "MapProjection.hpp"
 
 bool
@@ -132,18 +132,47 @@ GeoCoordinate::GeoCoordinate(double lon, double lat, CoordRefSystem coordRefSys)
 }
 
 double
+GeoCoordinate::parseDouble(const Glib::ustring& sval)
+{
+    double value;
+    auto [ptr, ec] = std::from_chars(sval.c_str(), sval.c_str() + sval.length(), value);
+    if (ec != std::errc()) {
+        long longVal;
+        auto [ptri, eci] = std::from_chars(sval.c_str(), sval.c_str() + sval.length(), longVal);
+        if (eci != std::errc()) {
+            value = longVal;
+        }
+        else {
+            std::cout << "Parsing " << sval << " as double failed from " << ptri << std::endl;
+            value = 0.0;
+        }
+    }
+    return value;
+}
+
+Glib::ustring
+GeoCoordinate::formatDouble(double val, std::chars_format fmt, int precision)
+{
+    std::array<char, 64> str;
+    auto [ptr, ec] = std::to_chars(str.data(), str.data() + str.size(), val, fmt, precision);
+    if (ec == std::errc()) {    // unlikely but check
+        Glib::ustring ustr{str.data(), ptr};
+        return ustr;
+    }
+    return "0";
+}
+
+double
 GeoCoordinate::parseLatitude(const Glib::ustring& lat)
 {
-    LocaleContext localectx(LC_NUMERIC);
-    m_latitude = localectx.parseDouble(LocaleContext::en_US, lat);
+    m_latitude = parseDouble(lat);
     return m_latitude;
 }
 
 double
 GeoCoordinate::parseLongitude(const Glib::ustring& lon)
 {
-    LocaleContext localectx(LC_NUMERIC);
-    m_longitude = localectx.parseDouble(LocaleContext::en_US, lon);
+    m_longitude = parseDouble(lon);
     return m_longitude;
 }
 
@@ -160,13 +189,10 @@ GeoCoordinate::printValue(char separator) const
         first =  m_longitude;
         second = m_latitude;
     }
-    LocaleContext localectx(LC_NUMERIC);
-    if (localectx.set(LocaleContext::en_US)) {
-        return Glib::ustring::sprintf("%.3f%c%.3f"
-                , first, separator, second);
-    }
-    return Glib::ustring::sprintf("%d%c%d"
-                , (int)first, separator, (int)second);
+    return Glib::ustring::sprintf("%s%c%s"
+            , formatDouble(first)
+            , separator
+            , formatDouble(second));
 }
 
 void

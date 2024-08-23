@@ -64,3 +64,11 @@
 /src/.deps/libgeodata_la-Weather.Tpo
 /src/.deps/
 /src/geodata.pc
+/test/geo_test.log
+/test/Makefile
+/test/geo_test
+/test/test-suite.log
+/test/geo_test.trs
+/test/Makefile.in
+/test-driver
+/test/.libs/geo_test

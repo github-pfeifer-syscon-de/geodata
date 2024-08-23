@@ -66,5 +66,6 @@ AC_CONFIG_FILES([
 Makefile
 src/geodata.pc
 src/Makefile
+test/Makefile
 ])
 AC_OUTPUT
