@@ -18,6 +18,7 @@
 #include <iostream>
 #include <array>
 #include <Log.hpp>
+#include <StringUtils.hpp>
 
 #include "GeoCoordinate.hpp"
 #include "MapProjection.hpp"
@@ -135,19 +136,8 @@ GeoCoordinate::GeoCoordinate(double lon, double lat, CoordRefSystem coordRefSys)
 double
 GeoCoordinate::parseDouble(const Glib::ustring& sval)
 {
-    double value;
-    auto [ptr, ec] = std::from_chars(sval.c_str(), sval.c_str() + sval.length(), value);
-    if (ec != std::errc()) {
-        long longVal;
-        auto [ptri, eci] = std::from_chars(sval.c_str(), sval.c_str() + sval.length(), longVal);
-        if (eci == std::errc()) {
-            value = longVal;
-        }
-        else {
-            psc::log::Log::logAdd(Glib::ustring::sprintf("Parsing %s as double failed ", sval));
-            value = 0.0;
-        }
-    }
+    // glib function is more robust
+    double value = Glib::Ascii::strtod(sval);
     return value;
 }
 
@@ -160,7 +150,7 @@ GeoCoordinate::formatDouble(double val, std::chars_format fmt, int precision)
         Glib::ustring ustr{str.data(), ptr};
         return ustr;
     }
-    psc::log::Log::logAdd(Glib::ustring::sprintf("Formating %lf failed ", val));
+    psc::log::Log::logAdd(psc::log::Level::Warn, std::format("Formating {0} failed ", val));
     return "0";
 }
 
@@ -191,7 +181,7 @@ GeoCoordinate::printValue(char separator) const
         first =  m_longitude;
         second = m_latitude;
     }
-    return Glib::ustring::sprintf("%s%c%s"
+    return std::format("{0}{1}{2}"
             , formatDouble(first)
             , separator
             , formatDouble(second));
@@ -291,8 +281,10 @@ GeoBounds::getEastNorth()
 Glib::ustring
 GeoBounds::printValue(char separator) const
 {
-    return Glib::ustring::sprintf("%s%c%s"
-                , m_westSouth.printValue(separator), separator, m_eastNorth.printValue(separator));
+    return std::format("{0}{1}{2}"
+                , m_westSouth.printValue(separator)
+                , separator
+                , m_eastNorth.printValue(separator));
 }
 
 GeoBounds

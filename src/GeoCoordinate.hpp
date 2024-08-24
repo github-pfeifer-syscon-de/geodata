@@ -110,7 +110,7 @@ public:
         os << " lon "  << myRef.m_longitude << " lat " << myRef.m_latitude << myRef.m_coordRef;
         return os;
     }
-    // parse by c-locale
+    // parse by c-locale (does not take leading white-space + plus sign!) see StringUtils for something different
     static double parseDouble(const Glib::ustring& sval);
     // format by c-locale
     static Glib::ustring formatDouble(double val, std::chars_format fmt = std::chars_format::fixed, int precision = 4);
