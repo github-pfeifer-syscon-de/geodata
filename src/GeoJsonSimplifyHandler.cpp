@@ -17,7 +17,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <StringUtils.hpp>
 
 #include "GeoJsonSimplifyHandler.hpp"
 
@@ -153,7 +152,7 @@ GeoJsonSimplifyHandler::exportFile(const Glib::ustring& file)
     GError* error{nullptr};
     json_generator_to_file(generator, file.c_str(), &error);
     if (error) {
-        Glib::ustring msg = std::format("Error {0} export json file {1}", error->message, file);
+        Glib::ustring msg = Glib::ustring::sprintf("Error export json file %s", error->message);
         g_error_free(error);
         throw JsonException(msg);
     }

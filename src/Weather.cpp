@@ -42,7 +42,7 @@ Glib::RefPtr<Gdk::Pixbuf>
 WeatherImageRequest::get_pixbuf()
 {
     GInputStream *stream = get_stream();
-    m_weatherLog->logMsg(psc::log::Level::Debug, std::format("pixbuf stream {0}", reinterpret_cast<void*>(stream)));
+    m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("pixbuf stream %x", stream));
     if (stream) {
         try {
             Glib::RefPtr<Gdk::PixbufLoader> loader = Gdk::PixbufLoader::create();
@@ -55,21 +55,21 @@ WeatherImageRequest::get_pixbuf()
                 }
                 if (error) {
                     if (m_weatherLog) {
-                        m_weatherLog->logMsg(psc::log::Level::Error, std::format("Error {0} reading http", error->message));
+                        m_weatherLog->logMsg(psc::log::Level::Error, Glib::ustring::sprintf("Error reading http %s", error->message));
                     }
                     g_error_free(error);
                     break;
                 }
                 loader->write(data, len);
             }
-            m_weatherLog->logMsg(psc::log::Level::Debug, std::format("pixbuf close {0}", reinterpret_cast<void*>(stream)));
+            m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("pixbuf close %x", stream));
             g_input_stream_close(stream, nullptr, nullptr);
             loader->close();
             return loader->get_pixbuf();
         }
         catch (const Glib::Error& ex) {    // Gdk::PixbufError
             if (m_weatherLog) {
-                m_weatherLog->logMsg(psc::log::Level::Error, std::format("Error {0} reading image pixmap", ex.what()));
+                m_weatherLog->logMsg(psc::log::Level::Error, Glib::ustring::sprintf("Error reading image pixmap %s", ex.what()));
             }
         }
     }
@@ -128,11 +128,11 @@ void
 Weather::inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessageStream* message)
 {
     if (!error.empty()) {
-        logMsg(psc::log::Level::Warn, std::format("error image {0}", error));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("error image %s", error));
         return;
     }
     if (status != SpoonMessage::OK) {
-        logMsg(psc::log::Level::Warn, std::format("Error {0} image response", status));
+        logMsg(psc::log::Level::Warn,Glib::ustring::sprintf("Error image response %d", status));
         return;
     }
     auto stream = message->get_stream();
@@ -155,11 +155,11 @@ void
 Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message, std::shared_ptr<WeatherProduct> product)
 {
    if (!error.empty()) {
-        logMsg(psc::log::Level::Warn, std::format("error {0} legend", error));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("error legend %s", error));
         return;
     }
     if (status != SpoonMessage::OK) {
-        logMsg(psc::log::Level::Warn, std::format("Error {0} legend response", status));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("Error legend response %d", status));
         return;
     }
     auto data = message->get_bytes();
@@ -173,7 +173,7 @@ Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMe
         loader->close();
         if (loader->get_pixbuf()) {
             auto pixbuf = loader->get_pixbuf();
-            logMsg(psc::log::Level::Debug, std::format("Loading legend pixbuf chan {0} width {1} height {2}", pixbuf->get_n_channels(), pixbuf->get_width(), pixbuf->get_height()));
+            logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("Loading legend pixbuf chan %d width %d height %d", pixbuf->get_n_channels(), pixbuf->get_width(), pixbuf->get_height()));
             if (product) {
                 product->set_legend(pixbuf);
             }
@@ -183,7 +183,7 @@ Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMe
         }
     }
     catch (const Glib::Error& ex) {
-        logMsg(psc::log::Level::Warn, std::format("Error reading legend pixmap {0}",  ex.what()));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("Error reading legend pixmap %s",  ex.what()));
     }
 }
 

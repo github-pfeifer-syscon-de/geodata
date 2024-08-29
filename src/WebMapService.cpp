@@ -47,17 +47,17 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     addQuery("LAYERS", product->get_id());
     addQuery("CRS", product->getCoordRefSystem().identifier());
     addQuery("FORMAT", "image/png");
-    addQuery("HEIGHT", std::format("{0}", m_pixHeight));
-    addQuery("WIDTH", std::format("{0}", m_pixWidth));
+    addQuery("HEIGHT", Glib::ustring::sprintf("%d", m_pixHeight));
+    addQuery("WIDTH", Glib::ustring::sprintf("%d", m_pixWidth));
     addQuery("TRANSPARENT", "TRUE");    // prefer transparent
     auto latest = product->getLatestTime();
     if (latest) {
-        m_weatherLog->logMsg(psc::log::Level::Debug, std::format("using time {0}", latest.format_iso8601()));
+        m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("using time %s", latest.format_iso8601()));
         addQuery("TIME", latest.format_iso8601());
     }
     Glib::ustring bound = m_bounds.printValue(',');
-    m_weatherLog->logMsg(psc::log::Level::Debug, std::format("m_westSouth lon {0} lat {0} ref {0}", m_bounds.getWestSouth().getLongitude(), m_bounds.getWestSouth().getLatitude(), m_bounds.getWestSouth().getCoordRefSystem().identifier()));
-    m_weatherLog->logMsg(psc::log::Level::Debug, std::format("m_eastNorth lon {0} lat {0} ref {0}", m_bounds.getEastNorth().getLongitude(), m_bounds.getEastNorth().getLatitude(), m_bounds.getEastNorth().getCoordRefSystem().identifier()));
+    m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("m_westSouth lon %f lat %f ref %s", m_bounds.getWestSouth().getLongitude(), m_bounds.getWestSouth().getLatitude(), m_bounds.getWestSouth().getCoordRefSystem().identifier()));
+    m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("m_eastNorth lon %f lat %f ref %s", m_bounds.getEastNorth().getLongitude(), m_bounds.getEastNorth().getLatitude(), m_bounds.getEastNorth().getCoordRefSystem().identifier()));
     addQuery("BBOX", bound);
     signal_receive().connect(
         sigc::mem_fun(*webMapService, &WebMapService::inst_on_image_callback));
@@ -88,7 +88,7 @@ WebMapImageRequest::mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pix
             }
             else {
                 if (m_weatherLog) {
-                    m_weatherLog->logMsg(psc::log::Level::Warn, std::format( "Generated lin y {0} while mapping exceeded size {1}", linYsrc, pix_height));
+                    m_weatherLog->logMsg(psc::log::Level::Warn, Glib::ustring::sprintf( "Generated lin y %d while mapping exceeded size %d", linYsrc, pix_height));
                 }
             }
     	}
@@ -583,7 +583,7 @@ WebMapService::capabilities()
     message->addQuery("version", "1.3.0");
     message->addQuery("request", "GetCapabilities");
     message->signal_receive().connect(sigc::mem_fun(*this, &WebMapService::inst_on_capabilities_callback));
-    logMsg(psc::log::Level::Debug, std::format("capabilities url {0}", message->get_url()));
+    logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("capabilities url %s", message->get_url()));
     getSpoonSession()->send(message);
 }
 
@@ -591,19 +591,19 @@ void
 WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message)
 {
     if (!error.empty()) {
-        logMsg(psc::log::Level::Warn, std::format("capabilities {0}", error));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback capabilities %s", error));
         return;
     }
     if (status != SpoonMessage::OK) {
-        logMsg(psc::log::Level::Warn, std::format("capabilities response {0}", status));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback capabilities response %d", status));
         return;
     }
     auto data = message->get_bytes();
     if (!data) {
-        logMsg(psc::log::Level::Warn, "capabilities no data");
+        logMsg(psc::log::Level::Warn, "WebMapService::inst_on_capabilities_callback capabilities no data");
         return;
     }
-    logMsg(psc::log::Level::Debug, std::format("capabilities len {0}", data->size()));
+    logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("capabilities len %d", data->size()));
 
     NXMLParser parser(this);
     Glib::Markup::ParseContext context(parser);	// , Glib::Markup::ParseFlags::TREAT_CDATA_AS_TEXT
@@ -615,7 +615,7 @@ WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int sta
         context.end_parse();
     }
     catch (const Glib::MarkupError& ex) {
-        logMsg(psc::log::Level::Error, std::format("error {0}", ex.what()));
+        logMsg(psc::log::Level::Error, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback error %s", ex.what()));
     }
     #ifdef WEATHER_DEBUG
     int usable = 0;
@@ -630,7 +630,7 @@ WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int sta
     }
     std::cout << "WebMapService::inst_on_capabilities_callback got " << m_products.size() << " products usable " << usable << std::endl;
     #endif
-    logMsg(psc::log::Level::Debug, std::format("capabilities products decoded {0}", m_products.size()));
+    logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("capabilities products decoded %d", m_products.size()));
     m_signal_products_completed.emit();
 }
 
@@ -640,7 +640,7 @@ WebMapService::request(const Glib::ustring& productId)
     auto wproduct = find_product(productId);
     auto product = std::dynamic_pointer_cast<WebMapProduct>(wproduct);
     if (!product) {
-        logMsg(psc::log::Level::Warn, std::format("request product {0} (not yet) not found", productId));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("request product %s not found", productId));
         return;
     }
 
@@ -664,7 +664,7 @@ WebMapService::request(const Glib::ustring& productId)
                         , image_size2 - xOffs, 0
                         , xOffs, image_size2
                         , product);
-            logMsg(psc::log::Level::Debug, std::format("request NW {0}", requestWN->get_url()));
+            logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("request NW %s", requestWN->get_url()));
             getSpoonSession()->send(requestWN);
         }
         if (product->getEastNorth().getLongitude() > 0.0) {

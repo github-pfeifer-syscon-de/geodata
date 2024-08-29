@@ -18,7 +18,6 @@
 #include <iostream>
 #include <array>
 #include <Log.hpp>
-#include <StringUtils.hpp>
 
 #include "GeoCoordinate.hpp"
 #include "MapProjection.hpp"
@@ -150,7 +149,7 @@ GeoCoordinate::formatDouble(double val, std::chars_format fmt, int precision)
         Glib::ustring ustr{str.data(), ptr};
         return ustr;
     }
-    psc::log::Log::logAdd(psc::log::Level::Warn, std::format("Formating {0} failed ", val));
+    psc::log::Log::logAdd(Glib::ustring::sprintf("Formating %lf failed ", val));
     return "0";
 }
 
@@ -181,7 +180,7 @@ GeoCoordinate::printValue(char separator) const
         first =  m_longitude;
         second = m_latitude;
     }
-    return std::format("{0}{1}{2}"
+    return Glib::ustring::sprintf("%s%c%s"
             , formatDouble(first)
             , separator
             , formatDouble(second));
@@ -281,10 +280,8 @@ GeoBounds::getEastNorth()
 Glib::ustring
 GeoBounds::printValue(char separator) const
 {
-    return std::format("{0}{1}{2}"
-                , m_westSouth.printValue(separator)
-                , separator
-                , m_eastNorth.printValue(separator));
+    return Glib::ustring::sprintf("%s%c%s"
+                , m_westSouth.printValue(separator), separator, m_eastNorth.printValue(separator));
 }
 
 GeoBounds

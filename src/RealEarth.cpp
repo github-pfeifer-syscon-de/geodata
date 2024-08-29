@@ -21,7 +21,7 @@
 #include <strings.h>
 #include <memory.h>
 #include <JsonHelper.hpp>
-#include <StringUtils.hpp>
+
 
 #include "RealEarth.hpp"
 #include "MapProjection.hpp"
@@ -56,7 +56,7 @@ RealEarthImageRequest::build_url(std::shared_ptr<RealEarthProduct>& product)
 {
     addQuery("products", product->get_id());
     Glib::ustring bound;
-    bound = std::format("{0},{1},{2},{3}"
+    bound = Glib::ustring::sprintf("%s,%s,%s,%s"
             , GeoCoordinate::formatDouble(m_south)
             , GeoCoordinate::formatDouble(m_west)
             , GeoCoordinate::formatDouble(m_north)
@@ -70,8 +70,8 @@ RealEarthImageRequest::build_url(std::shared_ptr<RealEarthProduct>& product)
         Glib::ustring time = times[times.size()-1];
         addQuery("time", time);
     }
-    addQuery("width", std::format("{0}", m_pixWidth));
-    addQuery("height", std::format("{0}", m_pixWidth));
+    addQuery("width", Glib::ustring::sprintf("%d", m_pixWidth));
+    addQuery("height", Glib::ustring::sprintf("%d", m_pixWidth));
 }
 
 // undo mercator mapping (correctly named coordinate transform) of pix.

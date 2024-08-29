@@ -17,7 +17,6 @@
 
 #include <iostream>
 #include <cmath>
-#include <StringUtils.hpp>
 
 #include "GeoJson.hpp"
 
@@ -77,7 +76,7 @@ GeoPath&
 GeoJsonVectorHandler::getPath()
 {
     if (m_count > m_pointsLimit) {
-        throw JsonException(std::format("The file contains {0} points this is more than the allowed {1}", m_count, m_pointsLimit));
+        throw JsonException(Glib::ustring::sprintf("The file contains more points %d (allowed %d) as we can handle", m_count, m_pointsLimit));
     }
     return m_path;
 }
