@@ -20,6 +20,7 @@
 #include <glibmm.h>
 #include <cmath>
 #include <charconv>
+#include <GenericGlmCompat.hpp> // providers pi constants for windows
 
 class CoordRefSystem {
 public:

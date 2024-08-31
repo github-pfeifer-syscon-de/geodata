@@ -5,7 +5,8 @@ AM_CPPFLAGS = \
 	-DPACKAGE_LOCALE_DIR=\""$(localedir)"\" \
 	-DPACKAGE_SRC_DIR=\""$(srcdir)."\" \
 	-DPACKAGE_DATA_DIR=\""$(pkgdatadir)"\" \
-	`pkgconf glibmm-2.4 giomm-2.4 --cflags` \
+	$(GENERICGLM_CFLAGS) \
+	$(GENERICIMG_CFLAGS) \
 	$(GEODATA_CFLAGS) \
 	-I../src
 
