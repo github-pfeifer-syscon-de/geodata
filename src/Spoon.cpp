@@ -21,11 +21,6 @@
 
 #include "Spoon.hpp"
 
-// Issue: with systemd logging there were some issues with messages not appearing
-//   in debug mode for the longer messages containing a url,
-//   but the flow shows up for the higher levels, unsure what is the reason...
-//   (if you are unsure switch to file logging by initializing log differently with glglobe)
-
 SpoonSession::SpoonSession(const Glib::ustring& user_agent)
 : m_session{soup_session_new()}
 {

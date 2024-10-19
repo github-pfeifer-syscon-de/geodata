@@ -52,9 +52,6 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     addQuery("TRANSPARENT", "TRUE");    // prefer transparent
     auto latest = product->getLatestTime();
     if (latest) {
-        psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-            return std::format("using time {}", latest.format_iso8601());
-        });
         addQuery("TIME", latest.format_iso8601());
     }
     else {
@@ -62,10 +59,15 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     }
     Glib::ustring bound = m_bounds.printValue(',');
     psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-        return std::format("m_westSouth lon {} lat {} ref {}", m_bounds.getWestSouth().getLongitude(), m_bounds.getWestSouth().getLatitude(), m_bounds.getWestSouth().getCoordRefSystem().identifier());
-    });
-    psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-        return std::format("m_eastNorth lon {} lat {} ref {}", m_bounds.getEastNorth().getLongitude(), m_bounds.getEastNorth().getLatitude(), m_bounds.getEastNorth().getCoordRefSystem().identifier());
+        return std::format("time {} bound {} m_westSouth lon {} lat {} ref {} m_eastNorth lon {} lat {} ref {}"
+                            , (latest ? latest.format_iso8601() : Glib::ustring{})
+                            , bound
+                            , m_bounds.getWestSouth().getLongitude()
+                            , m_bounds.getWestSouth().getLatitude()
+                            , m_bounds.getWestSouth().getCoordRefSystem().identifier()
+                            , m_bounds.getEastNorth().getLongitude()
+                            , m_bounds.getEastNorth().getLatitude()
+                            , m_bounds.getEastNorth().getCoordRefSystem().identifier());
     });
     addQuery("BBOX", bound);
     signal_receive().connect(
