@@ -16,10 +16,15 @@
  */
 
 #include <iostream>
-#include <StringUtils.hpp>
 #include <Log.hpp>
+#include <StringUtils.hpp>
 
 #include "Spoon.hpp"
+
+// Issue: with systemd logging there were some issues with messages not appearing
+//   in debug mode for the longer messages containing a url,
+//   but the flow shows up for the higher levels, unsure what is the reason...
+//   (if you are unsure switch to file logging by initializing log differently with glglobe)
 
 SpoonSession::SpoonSession(const Glib::ustring& user_agent)
 : m_session{soup_session_new()}
@@ -151,7 +156,9 @@ SpoonMessageDirect::callback(GObject *source, GAsyncResult *result, gpointer use
     Glib::RefPtr<Glib::ByteArray> data;
     GBytes* bytes = soup_session_send_and_read_finish(SOUP_SESSION(source), result, &error);
     if (error) {
-        psc::log::Log::logAdd(psc::log::Level::Error, Glib::ustring::sprintf("error session %s", error->message));
+        psc::log::Log::logAdd(psc::log::Level::Error, [&] {
+            return std::format("error session {}", error->message);
+        });
         if (spoonmsg) {
             spoonmsg->emit(error->message, status, data);
         }
@@ -159,14 +166,18 @@ SpoonMessageDirect::callback(GObject *source, GAsyncResult *result, gpointer use
     }
     else {
         if (bytes) {
-            psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("callback bytes %p", bytes));
+            psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+                return std::format("callback bytes {}", static_cast<void*>(bytes));
+            });
             GByteArray *bytearr = g_bytes_unref_to_array(bytes);
             data = Glib::wrap(bytearr);
         }
         if (spoonmsg) {
             SoupMessage* msg = soup_session_get_async_result_message(SOUP_SESSION(source), result);
             status = soup_message_get_status(msg);
-            psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("Got %d url %s", status, spoonmsg->get_url()));
+            psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+                return std::format("Got {} url {}", static_cast<int>(status), spoonmsg->get_url());
+            });
             spoonmsg->emit({}, status, data);
         }
     }
@@ -177,7 +188,9 @@ SpoonMessageDirect::send()
 {
     SoupMessage* msg = soup_message_new(get_method(), get_url().c_str());
     GCancellable* cancellable = get_cancelable();
-    psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("send %s url %s msg %p", get_method(), get_url(), msg));
+    psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+        return std::format("send {} url {} msg {}", get_method(), get_url(), static_cast<void*>(msg));
+    });
     soup_session_send_and_read_async(
            m_spoonSession->get_session(), msg, G_PRIORITY_DEFAULT, cancellable, SpoonMessageDirect::callback, this);
     g_object_unref(msg);
@@ -228,7 +241,9 @@ SpoonMessageStream::callback(GObject *source, GAsyncResult *result, gpointer use
     SoupStatus status = SOUP_STATUS_NONE;
     GInputStream* stream = soup_session_send_finish(SOUP_SESSION(source), result, &error);
     if (error) {
-        psc::log::Log::logAdd(psc::log::Level::Error, Glib::ustring::sprintf("error session %s", error->message));
+        psc::log::Log::logAdd(psc::log::Level::Error, [&] {
+            return std::format("error session {}", error->message);
+        });
         if (spoonmsg) {
             spoonmsg->emit(error->message, status, stream);
         }
@@ -238,8 +253,9 @@ SpoonMessageStream::callback(GObject *source, GAsyncResult *result, gpointer use
         if (spoonmsg) {
             SoupMessage* msg = soup_session_get_async_result_message(SOUP_SESSION(source), result);
             status = soup_message_get_status(msg);
-            psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("Got %d url %s stream %p", status, spoonmsg->get_url(), stream));
-
+            psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+                return std::format("Got {} url {} stream {}", static_cast<int>(status), spoonmsg->get_url(), static_cast<void*>(stream));
+            });
             spoonmsg->emit({}, status, stream);
         }
     }
@@ -252,7 +268,9 @@ void
 SpoonMessageStream::send()
 {
     SoupMessage* msg = soup_message_new(get_method(), get_url().c_str());
-    psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::format("send %s url %s msg %p", get_method(), get_url(), msg));
+    psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+        return std::format("send {} url {} msg {}", get_method(), get_url(), static_cast<void*>(msg));
+    });
     GCancellable* cancellable = get_cancelable();
     soup_session_send_async(
            m_spoonSession->get_session(), msg, G_PRIORITY_LOW, cancellable, SpoonMessageStream::callback, this);
