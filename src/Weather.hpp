@@ -96,12 +96,11 @@ class WeatherImageRequest
 : public SpoonMessageStream
 {
 public:
-    WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path, WeatherLog* weatherLog);
+    WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path);
     virtual ~WeatherImageRequest() = default;
     Glib::RefPtr<Gdk::Pixbuf> get_pixbuf();
     virtual void mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pixbuf>& weather) = 0;
 protected:
-    WeatherLog* m_weatherLog;
 private:
 };
 

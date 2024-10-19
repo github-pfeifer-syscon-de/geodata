@@ -18,6 +18,7 @@
 #include <iostream>
 #include <array>
 #include <Log.hpp>
+#include <StringUtils.hpp>
 
 #include "GeoCoordinate.hpp"
 #include "MapProjection.hpp"
@@ -143,14 +144,8 @@ GeoCoordinate::parseDouble(const Glib::ustring& sval)
 Glib::ustring
 GeoCoordinate::formatDouble(double val, std::chars_format fmt, int precision)
 {
-    std::array<char, 64> str;
-    auto [ptr, ec] = std::to_chars(str.data(), str.data() + str.size(), val, fmt, precision);
-    if (ec == std::errc()) {    // unlikely but check
-        Glib::ustring ustr{str.data(), ptr};
-        return ustr;
-    }
-    psc::log::Log::logAdd(Glib::ustring::sprintf("Formating %lf failed ", val));
-    return "0";
+    // this is functional equivalent
+    return StringUtils::formatCDouble(val, fmt, precision);
 }
 
 double

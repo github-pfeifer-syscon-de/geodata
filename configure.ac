@@ -44,7 +44,7 @@ dnl PKG_CHECK_MODULES([GTKMM], [gtkmm-3.0])
 dnl already imported with genericImg
 dnl PKG_CHECK_MODULES([GLIBMM], [glibmm-2.4 giomm-2.4])
 
-depend_genericimg="genericimg >= 0.3.1"
+depend_genericimg="genericimg >= 0.3.6"
 AC_SUBST([depend_genericimg])
 PKG_CHECK_MODULES([GENERICIMG],[$depend_genericimg])
 depend_genericglm="genericglm >= 0.3.1"

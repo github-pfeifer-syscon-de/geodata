@@ -18,6 +18,7 @@
 #include <iostream>
 #include <iomanip>
 #include <JsonHelper.hpp>
+#include <format>
 #include <StringUtils.hpp>
 
 #include "Weather.hpp"
@@ -31,9 +32,8 @@ WebMapServiceConf::WebMapServiceConf(const Glib::ustring& name, const Glib::ustr
 {
 }
 
-WeatherImageRequest::WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path, WeatherLog* weatherLog)
+WeatherImageRequest::WeatherImageRequest(const Glib::ustring& host, const Glib::ustring& path)
 : SpoonMessageStream(host, path)
-, m_weatherLog{weatherLog}
 {
 }
 
@@ -42,7 +42,9 @@ Glib::RefPtr<Gdk::Pixbuf>
 WeatherImageRequest::get_pixbuf()
 {
     GInputStream *stream = get_stream();
-    m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("pixbuf stream %x", stream));
+    psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+        return std::format("pixbuf stream {}", static_cast<void*>(stream));
+    });
     if (stream) {
         try {
             Glib::RefPtr<Gdk::PixbufLoader> loader = Gdk::PixbufLoader::create();
@@ -54,29 +56,29 @@ WeatherImageRequest::get_pixbuf()
                     break;
                 }
                 if (error) {
-                    if (m_weatherLog) {
-                        m_weatherLog->logMsg(psc::log::Level::Error, Glib::ustring::sprintf("Error reading http %s", error->message));
-                    }
+                    psc::log::Log::logAdd(psc::log::Level::Error, [&] {
+                        return std::format("Error reading http {}", error->message);
+                    });
                     g_error_free(error);
                     break;
                 }
                 loader->write(data, len);
             }
-            m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("pixbuf close %x", stream));
+            psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+                return std::format("pixbuf close {}", static_cast<void*>(stream));
+            });
             g_input_stream_close(stream, nullptr, nullptr);
             loader->close();
             return loader->get_pixbuf();
         }
         catch (const Glib::Error& ex) {    // Gdk::PixbufError
-            if (m_weatherLog) {
-                m_weatherLog->logMsg(psc::log::Level::Error, Glib::ustring::sprintf("Error reading image pixmap %s", ex.what()));
-            }
+            psc::log::Log::logAdd(psc::log::Level::Error, [&] {
+                return std::format("Error reading image pixmap {}", ex);
+            });
         }
     }
     else {
-        if (m_weatherLog) {
-            m_weatherLog->logMsg(psc::log::Level::Error, "WeatherRequest::get_pixbuf no data ");
-        }
+        psc::log::Log::logAdd(psc::log::Level::Error, "WeatherRequest::get_pixbuf no data ");
     }
     return Glib::RefPtr<Gdk::Pixbuf>();
 }
@@ -234,9 +236,9 @@ Weather::dump(const guint8 *data, gsize size)
         if (offset > 0u) {
             out << std::endl;
         }
-        out << std::hex << std::setw(4) << std::setfill('0') << offset << ":";
+        out << std::format("{:04x}:", offset);
         for (gsize i = 0; i < std::min(size-offset, (gsize)16u); ++i)  {
-            out << std::setw(2) << std::setfill('0') << (int)data[offset+i] << " ";
+            out << std::format(" {:02x}", data[offset+i]);
         }
         out << std::dec << std::setw(1) << " ";
         for (gsize i = 0; i < std::min(size-offset, (gsize)16u); ++i)  {

@@ -17,13 +17,12 @@
 
 #pragma once
 
-#include <glibmm.h>
 #include <memory>
-#include <libsoup/soup.h>
 #include <map>
 #include <list>
+#include <glibmm.h>
+#include <libsoup/soup.h>
 
-#undef SPOON_DEBUG
 #undef SPOON_DEBUG_INTERNAL
 
 class SpoonMessage;
@@ -83,7 +82,7 @@ private:
     std::map<Glib::ustring, Glib::ustring> m_query;
 };
 
-// a message that content is passed in memory
+// a message for which the content is passed in memory
 class SpoonMessageDirect
 : public SpoonMessage
 {

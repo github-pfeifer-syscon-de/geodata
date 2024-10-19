@@ -16,6 +16,8 @@
  */
 
 #include <iostream>
+#include <StringUtils.hpp>
+#include <Log.hpp>
 
 #include "Spoon.hpp"
 
@@ -126,9 +128,7 @@ SpoonMessageDirect::signal_receive()
 void
 SpoonMessageDirect::callback(GObject *source, GAsyncResult *result, gpointer user_data)
 {
-    #ifdef SPOON_DEBUG
-    std::cout << "SpoonMessageDirect::callback" << std::endl;
-    #endif
+    psc::log::Log::logAdd(psc::log::Level::Debug, "SpoonMessageDirect::callback");
     std::shared_ptr<SpoonMessageDirect> spoonmsg;
     SpoonMessageDirect* ptr = (SpoonMessageDirect *)user_data;
     if (ptr) {
@@ -136,22 +136,22 @@ SpoonMessageDirect::callback(GObject *source, GAsyncResult *result, gpointer use
         if (sess) {
             spoonmsg = std::dynamic_pointer_cast<SpoonMessageDirect>(sess->get_remove_msg(ptr));
             if (!spoonmsg) {
-                std::cerr << "SpoonSession::callback no pointer/wrong type" << std::endl;
+                psc::log::Log::logAdd(psc::log::Level::Error, "SpoonSession::callback no pointer/wrong type");
             }
         }
         else {
-            std::cerr << "SpoonSession::callback no session on message" << std::endl;
+            psc::log::Log::logAdd(psc::log::Level::Error, "SpoonSession::callback no session on message");
         }
     }
     else {
-        std::cerr << "SpoonSession::callback no ptr on message" << std::endl;
+        psc::log::Log::logAdd(psc::log::Level::Error, "SpoonSession::callback no ptr on message");
     }
     GError *error = nullptr;
     SoupStatus status = SOUP_STATUS_NONE;
     Glib::RefPtr<Glib::ByteArray> data;
     GBytes* bytes = soup_session_send_and_read_finish(SOUP_SESSION(source), result, &error);
     if (error) {
-        std::cout << "error session " << error->message << std::endl;
+        psc::log::Log::logAdd(psc::log::Level::Error, Glib::ustring::sprintf("error session %s", error->message));
         if (spoonmsg) {
             spoonmsg->emit(error->message, status, data);
         }
@@ -159,19 +159,14 @@ SpoonMessageDirect::callback(GObject *source, GAsyncResult *result, gpointer use
     }
     else {
         if (bytes) {
-            #ifdef SPOON_DEBUG
-            std::cout << "SpoonSession::callback bytes " << bytes << std::endl;
-            #endif
+            psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("callback bytes %p", bytes));
             GByteArray *bytearr = g_bytes_unref_to_array(bytes);
             data = Glib::wrap(bytearr);
         }
         if (spoonmsg) {
             SoupMessage* msg = soup_session_get_async_result_message(SOUP_SESSION(source), result);
             status = soup_message_get_status(msg);
-            #ifdef SPOON_DEBUG
-            std::cout << "Got " << status
-                      << " url " << spoonmsg->get_url() << std::endl;
-            #endif
+            psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("Got %d url %s", status, spoonmsg->get_url()));
             spoonmsg->emit({}, status, data);
         }
     }
@@ -182,12 +177,7 @@ SpoonMessageDirect::send()
 {
     SoupMessage* msg = soup_message_new(get_method(), get_url().c_str());
     GCancellable* cancellable = get_cancelable();
-    #ifdef SPOON_DEBUG
-    std::cout << "SpoonMessageDirect::send " << get_method()
-              << " url " << get_url()
-              << " msg " << std::hex << msg << std::dec
-              << std::endl;
-    #endif
+    psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("send %s url %s msg %p", get_method(), get_url(), msg));
     soup_session_send_and_read_async(
            m_spoonSession->get_session(), msg, G_PRIORITY_DEFAULT, cancellable, SpoonMessageDirect::callback, this);
     g_object_unref(msg);
@@ -216,9 +206,7 @@ SpoonMessageStream::signal_receive()
 void
 SpoonMessageStream::callback(GObject *source, GAsyncResult *result, gpointer user_data)
 {
-    #ifdef SPOON_DEBUG
-    std::cout << "SpoonMessageStream::callback" << std::endl;
-    #endif
+    psc::log::Log::logAdd(psc::log::Level::Debug, "SpoonMessageStream::callback");
     std::shared_ptr<SpoonMessageStream> spoonmsg;
     SpoonMessageStream* ptr = (SpoonMessageStream *)user_data;
     if (ptr) {
@@ -226,21 +214,21 @@ SpoonMessageStream::callback(GObject *source, GAsyncResult *result, gpointer use
         if (sess) {
             spoonmsg = std::dynamic_pointer_cast<SpoonMessageStream>(sess->get_remove_msg(ptr));
             if (!spoonmsg) {
-                std::cerr << "SpoonMessageStream::callback no pointer/wrong type" << std::endl;
+                psc::log::Log::logAdd(psc::log::Level::Error, "SpoonMessageStream::callback no pointer/wrong type");
             }
         }
         else {
-            std::cerr << "SpoonMessageStream::callback no session on message" << std::endl;
+            psc::log::Log::logAdd(psc::log::Level::Error, "SpoonMessageStream::callback no session on message");
         }
     }
     else {
-        std::cerr << "SpoonMessageStream::callback no ptr on message" << std::endl;
+        psc::log::Log::logAdd(psc::log::Level::Error, "SpoonMessageStream::callback no ptr on message");
     }
     GError *error = nullptr;
     SoupStatus status = SOUP_STATUS_NONE;
     GInputStream* stream = soup_session_send_finish(SOUP_SESSION(source), result, &error);
     if (error) {
-        std::cout << "error session " << error->message << std::endl;
+        psc::log::Log::logAdd(psc::log::Level::Error, Glib::ustring::sprintf("error session %s", error->message));
         if (spoonmsg) {
             spoonmsg->emit(error->message, status, stream);
         }
@@ -250,19 +238,7 @@ SpoonMessageStream::callback(GObject *source, GAsyncResult *result, gpointer use
         if (spoonmsg) {
             SoupMessage* msg = soup_session_get_async_result_message(SOUP_SESSION(source), result);
             status = soup_message_get_status(msg);
-            #ifdef SPOON_DEBUG
-            std::cout << "Got " << status << std::endl
-                      << " url " << spoonmsg->get_url() << std::endl
-                      << " stream " << std::hex << stream << std::dec << std::endl;
-            #endif
-            if (stream) {
-                #ifdef SPOON_DEBUG
-                std::cout << "SpoonMessageStream::callback stream " << std::hex << stream << std::dec << std::endl;
-                #endif
-            }
-            else {
-                std::cout << "SpoonMessageStream::callback no stream " << std::endl;
-            }
+            psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::sprintf("Got %d url %s stream %p", status, spoonmsg->get_url(), stream));
 
             spoonmsg->emit({}, status, stream);
         }
@@ -276,12 +252,7 @@ void
 SpoonMessageStream::send()
 {
     SoupMessage* msg = soup_message_new(get_method(), get_url().c_str());
-    #ifdef SPOON_DEBUG
-    std::cout << "SpoonMessageStream::send " << get_method()
-              << " url " << get_url()
-              << " msg " << std::hex << msg << std::dec
-              << std::endl;
-    #endif
+    psc::log::Log::logAdd(psc::log::Level::Debug, Glib::ustring::format("send %s url %s msg %p", get_method(), get_url(), msg));
     GCancellable* cancellable = get_cancelable();
     soup_session_send_async(
            m_spoonSession->get_session(), msg, G_PRIORITY_LOW, cancellable, SpoonMessageStream::callback, this);

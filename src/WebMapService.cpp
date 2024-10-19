@@ -33,7 +33,7 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
         , const GeoBounds& bounds
         , int pixX, int pixY, int pixWidth, int pixHeight
         , std::shared_ptr<WebMapProduct>& product)
-: WeatherImageRequest(webMapService->getServiceConf()->getAddress(), "", webMapService)
+: WeatherImageRequest(webMapService->getServiceConf()->getAddress(), "")
 , m_webMapService{webMapService}
 , m_bounds{bounds}
 , m_pixX{pixX}
@@ -52,12 +52,21 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     addQuery("TRANSPARENT", "TRUE");    // prefer transparent
     auto latest = product->getLatestTime();
     if (latest) {
-        m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("using time %s", latest.format_iso8601()));
+        psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+            return std::format("using time {}", latest.format_iso8601());
+        });
         addQuery("TIME", latest.format_iso8601());
     }
+    else {
+        psc::log::Log::logAdd(psc::log::Level::Debug, "Using no time");
+    }
     Glib::ustring bound = m_bounds.printValue(',');
-    m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("m_westSouth lon %f lat %f ref %s", m_bounds.getWestSouth().getLongitude(), m_bounds.getWestSouth().getLatitude(), m_bounds.getWestSouth().getCoordRefSystem().identifier()));
-    m_weatherLog->logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("m_eastNorth lon %f lat %f ref %s", m_bounds.getEastNorth().getLongitude(), m_bounds.getEastNorth().getLatitude(), m_bounds.getEastNorth().getCoordRefSystem().identifier()));
+    psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+        return std::format("m_westSouth lon {} lat {} ref {}", m_bounds.getWestSouth().getLongitude(), m_bounds.getWestSouth().getLatitude(), m_bounds.getWestSouth().getCoordRefSystem().identifier());
+    });
+    psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+        return std::format("m_eastNorth lon {} lat {} ref {}", m_bounds.getEastNorth().getLongitude(), m_bounds.getEastNorth().getLatitude(), m_bounds.getEastNorth().getCoordRefSystem().identifier());
+    });
     addQuery("BBOX", bound);
     signal_receive().connect(
         sigc::mem_fun(*webMapService, &WebMapService::inst_on_image_callback));
@@ -87,9 +96,9 @@ WebMapImageRequest::mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pix
                 pix->copy_area(0, linYsrc, pix->get_width(), 1, weather_pix, m_pixX, m_pixY+linY);
             }
             else {
-                if (m_weatherLog) {
-                    m_weatherLog->logMsg(psc::log::Level::Warn, Glib::ustring::sprintf( "Generated lin y %d while mapping exceeded size %d", linYsrc, pix_height));
-                }
+                psc::log::Log::logAdd(psc::log::Level::Warn, [&] {
+                    return std::format( "Generated lin y {} while mapping exceeded size {}", linYsrc, pix_height);
+                });
             }
     	}
         else {
