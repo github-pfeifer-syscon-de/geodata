@@ -19,6 +19,7 @@
 #include <string>
 #include <StringUtils.hpp>
 #include <limits>
+#include <Log.hpp>
 
 #include "WebMapService.hpp"
 #include "MapProjection.hpp"
@@ -47,8 +48,8 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     addQuery("LAYERS", product->get_id());
     addQuery("CRS", product->getCoordRefSystem().identifier());
     addQuery("FORMAT", "image/png");
-    addQuery("HEIGHT", Glib::ustring::sprintf("%d", m_pixHeight));
-    addQuery("WIDTH", Glib::ustring::sprintf("%d", m_pixWidth));
+    addQuery("HEIGHT", std::to_string(m_pixHeight));
+    addQuery("WIDTH", std::to_string(m_pixWidth));
     addQuery("TRANSPARENT", "TRUE");    // prefer transparent
     auto latest = product->getLatestTime();
     if (latest) {
@@ -375,7 +376,8 @@ WebMapProduct::text(Glib::Markup::ParseContext& context, const Glib::ustring& te
     case ParseContext::BoundingBox:
         break;
     case ParseContext::Dimension:
-        parseDimension(text);
+        m_dimension = text;
+        parseDimension(m_dimension);
         break;
     case ParseContext::Attribution:
         m_attribution = text;
@@ -388,10 +390,10 @@ WebMapProduct::text(Glib::Markup::ParseContext& context, const Glib::ustring& te
 }
 
 void
-WebMapProduct::parseDimension(const Glib::ustring& text)
+WebMapProduct::parseDimension(const Glib::ustring& dimension)
 {
     std::vector<Glib::ustring> parts;
-    StringUtils::split(text, '/', parts);
+    StringUtils::split(dimension, '/', parts);
     if (parts.size() == 3) {
         m_timeDimStart = parts[0];
         m_timeDimEnd = parts[1];
@@ -400,7 +402,7 @@ WebMapProduct::parseDimension(const Glib::ustring& text)
         #ifdef WEATHER_DEBUG
         std::cout << "WebMapProduct::parseDimension "
                   << get_id()
-                  << " got " << text
+                  << " got " << dimension
                   << " end " << m_timeDimEnd
                   << " dim " << m_timeDimPeriod
                   << " period " << m_timePeriodSec << "s"
@@ -409,7 +411,7 @@ WebMapProduct::parseDimension(const Glib::ustring& text)
     }
     else {  // alternative discrete values
         parts.clear();
-        StringUtils::split(text, ',', parts);
+        StringUtils::split(dimension, ',', parts);
         if (parts.size() >= 2) {
             for (uint32_t i = 0; i < parts.size(); ++i) {
                 if (m_timeDimStart.empty()) {
@@ -457,25 +459,25 @@ WebMapProduct::periodSeconds(const Glib::ustring& timeDimPeriod)
                 }
                 else if (!time) {
                     if (c == 'D') {
-                        timePeriodSec += val * 24 * 60 * 60;
+                        timePeriodSec += val * SECS_PER_DAY;
                         val = 0;
                     }
                     else if (c == 'M') {  // ~ estimate
-                        timePeriodSec += val * 30 * 24 * 60 * 60;
+                        timePeriodSec += val * SECS_PER_MONTH;
                         val = 0;
                     }
                     else if (c == 'Y') {  // ~ estimate
-                        timePeriodSec += val  * 364 * 24 * 60 * 60;
+                        timePeriodSec += val  * SECS_PRE_YEAR;
                         val = 0;
                     }
                 }
                 else {
                     if (c == 'H') {
-                        timePeriodSec += val * 60 * 60;
+                        timePeriodSec += val * SECS_PER_HOUR;
                         val = 0;
                     }
                     else if (c == 'M') {
-                        timePeriodSec += val * 60;
+                        timePeriodSec += val * SECS_PER_MINUTE;
                         val = 0;
                     }
                     else if (c == 'S') {
@@ -497,6 +499,12 @@ WebMapProduct::is_displayable()
 {
     bool displayable = m_crs;   // works when crs is defined
     return displayable;
+}
+
+Glib::ustring
+WebMapProduct::get_dimension()
+{
+    return m_dimension;
 }
 
 bool
@@ -548,18 +556,20 @@ WebMapProduct::getLatestTime()
         latestTime = Glib::DateTime::create_from_iso8601(iso8601, tz);
         if (m_webMapService->getServiceConf()->isViewCurrentTime()) {
             auto now = Glib::DateTime::create_now_utc();
-            #ifdef WEATHER_DEBUG
-            std::cout << "WebMapProduct::getLatestTime"
-                         << " now " << now.format_iso8601()
-                         << " delay " << m_webMapService->getServiceConf()->getDelaySec()
-                         << " period " << m_timePeriodSec << std::endl;
-            #endif
             now = now.add_seconds(-m_webMapService->getServiceConf()->getDelaySec()); // compare with past as service introduce delay
+            psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+                return std::format("getLatestTime use now {} delay {}s period {}s using adjusting {}"
+                        , now.format_iso8601(), m_webMapService->getServiceConf()->getDelaySec(), m_timePeriodSec, latestTime.format_iso8601());
+            });
             while (latestTime.compare(now) > 0) {                   // dwd will include prognosis but we are more so keep rolling
                 latestTime = latestTime.add_seconds(-m_timePeriodSec);
             }
         }
     }
+    psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
+        return std::format("result using {}"
+                , latestTime.format_iso8601());
+    });
     return latestTime;
 }
 
@@ -574,7 +584,9 @@ WebMapProduct::latest(Glib::DateTime& dateTime)
         return true;
     }
     else {
-        std::cout << "WebMapProduct::latest latest " << m_timeDimEnd << " not parsed" << std::endl;
+        psc::log::Log::logAdd(psc::log::Level::Warn, [&] {
+            return std::format("Not parsed latest {}", latestTime.format_iso8601());
+        });
     }
     return false;
 }
@@ -602,16 +614,16 @@ void
 WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message)
 {
     if (!error.empty()) {
-        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback capabilities %s", error));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("capabilities %s", error));
         return;
     }
     if (status != SpoonMessage::OK) {
-        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback capabilities response %d", status));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("capabilities response %d %s", status, SpoonMessage::decodeStatus(status)));
         return;
     }
     auto data = message->get_bytes();
     if (!data) {
-        logMsg(psc::log::Level::Warn, "WebMapService::inst_on_capabilities_callback capabilities no data");
+        logMsg(psc::log::Level::Warn, "capabilities no data");
         return;
     }
     logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("capabilities len %d", data->size()));
@@ -626,7 +638,7 @@ WebMapService::inst_on_capabilities_callback(const Glib::ustring& error, int sta
         context.end_parse();
     }
     catch (const Glib::MarkupError& ex) {
-        logMsg(psc::log::Level::Error, Glib::ustring::sprintf("WebMapService::inst_on_capabilities_callback error %s", ex.what()));
+        logMsg(psc::log::Level::Error, Glib::ustring::sprintf("Markup error %s", ex.what()));
     }
     #ifdef WEATHER_DEBUG
     int usable = 0;
@@ -753,7 +765,7 @@ WebMapService::get_legend(std::shared_ptr<WeatherProduct>& product)
     if (!legend) {
         auto webMapProduct = std::dynamic_pointer_cast<WebMapProduct>(product);
         if (!webMapProduct) {
-            logMsg(psc::log::Level::Error, "WebMapService::get_legend got wrong product type");
+            logMsg(psc::log::Level::Error, "got wrong product type");
             return Glib::RefPtr<Gdk::Pixbuf>();
         }
         auto legendURL = webMapProduct->get_legend_url();

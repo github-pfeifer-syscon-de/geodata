@@ -177,6 +177,16 @@ RealEarthProduct::is_latest(const Glib::ustring& latest)
     return false;
 }
 
+Glib::ustring
+RealEarthProduct::get_dimension()
+{
+    Glib::ustring ret;
+    if (!m_times.empty()) {
+        ret = m_times[m_times.size()-1];
+    }
+    return ret;
+}
+
 /**
  *  return time for latest
  * @param dateTime set date&time to local for latest if possible
@@ -293,8 +303,7 @@ RealEarth::inst_on_capabilities_callback(const Glib::ustring& error, int status,
         m_signal_products_completed.emit();
     }
     catch (const JsonException& ex) {
-        char head[64];
-        strncpy(head, (const gchar*)data->get_data(), std::min((guint)sizeof(head)-1, data->size()));
+        Glib::ustring head(reinterpret_cast<const char*>(data->get_data()), std::min(data->size(), 64u));
         std::cout << "Unable to parse " << head << "... " << ex.what() << std::endl;
     }
 }

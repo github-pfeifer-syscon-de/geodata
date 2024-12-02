@@ -85,6 +85,7 @@ public:
     bool is_latest(const Glib::ustring& latest);
     bool latest(Glib::DateTime& datetime) override;
     void set_extent(JsonObject* entry);
+    Glib::ustring get_dimension() override;
 
     Glib::RefPtr<Gdk::Pixbuf> get_legend() override;
     void set_legend(Glib::RefPtr<Gdk::Pixbuf>& legend) override;

@@ -74,6 +74,8 @@ public:
     // Override this if you need a cancelable message (and use the return of SpoonMessage::send)
     GCancellable* get_cancelable();
     virtual void send() = 0;
+    static const char* decodeStatus(int status);
+
 protected:
     Glib::ustring m_host;
     Glib::ustring m_path;
@@ -109,8 +111,8 @@ private:
     Glib::RefPtr<Glib::ByteArray> m_gbytes;
 };
 
-// a message that content is passed as stream
-//   reduced memory usage but the reading will be in foreground...
+// a message for which the content is passed as stream
+//   reduced memory usage but the actual reading will be in foreground...
 class SpoonMessageStream
 : public SpoonMessage
 {
@@ -123,7 +125,7 @@ public:
     //  - error anything went seriously wrong with soup
     //  - status anything went wrong on the remote side usually status <> OK
     //  - message->get_bytes unlikely? this should be available even if it may be the wrong format
-    //  - (message) if this is not set you get no notification -> check console messages
+    //  - (message) if this is not set you get no notification -> check log messages
     type_signal_receive signal_receive();
     void send() override;
     static void callback(GObject *source, GAsyncResult *result, gpointer user_data);

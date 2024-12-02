@@ -134,7 +134,7 @@ Weather::inst_on_image_callback(const Glib::ustring& error, int status, SpoonMes
         return;
     }
     if (status != SpoonMessage::OK) {
-        logMsg(psc::log::Level::Warn,Glib::ustring::sprintf("Error image response %d", status));
+        logMsg(psc::log::Level::Warn,Glib::ustring::sprintf("Error image response %d %s", status, SpoonMessage::decodeStatus(status)));
         return;
     }
     auto stream = message->get_stream();
@@ -161,7 +161,7 @@ Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMe
         return;
     }
     if (status != SpoonMessage::OK) {
-        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("Error legend response %d", status));
+        logMsg(psc::log::Level::Warn, Glib::ustring::sprintf("Error legend response %d %s", status, SpoonMessage::decodeStatus(status)));
         return;
     }
     auto data = message->get_bytes();

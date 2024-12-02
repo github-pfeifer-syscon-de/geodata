@@ -133,9 +133,17 @@ public:
     Glib::ustring get_description() override;
     bool latest(Glib::DateTime& datetime) override;
     bool is_displayable() override;
+    Glib::ustring get_dimension() override;
     Glib::ustring get_legend_url();
     CoordRefSystem getCoordRefSystem();
     bool is_latest();
+
+
+    static constexpr auto SECS_PER_MINUTE{60};
+    static constexpr auto SECS_PER_HOUR{60 * SECS_PER_MINUTE};
+    static constexpr auto SECS_PER_DAY{24 * SECS_PER_HOUR};
+    static constexpr auto SECS_PER_MONTH{30 * SECS_PER_DAY};
+    static constexpr auto SECS_PRE_YEAR{364 * SECS_PER_DAY};
 protected:
 private:
     void parseDimension(const Glib::ustring& text);
@@ -155,6 +163,7 @@ private:
     Glib::RefPtr<Gdk::Pixbuf> m_legendImage;
     Glib::ustring m_LastLegendWidth;
     WebMapService* m_webMapService;
+    Glib::ustring m_dimension;
 };
 
 class WebMapService

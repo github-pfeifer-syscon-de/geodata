@@ -45,9 +45,17 @@ public:
     {
         return m_name;
     }
+    void setName(const Glib::ustring& name)
+    {
+        m_name = name;
+    }
     Glib::ustring getAddress() const
     {
         return m_address;
+    }
+    void setAddress(const Glib::ustring& address)
+    {
+        m_address = address;
     }
     // beside the document period see WMS doc (the interval between updates)
     //   there is a delay (the place when this becomes visible is with the time
@@ -61,14 +69,26 @@ public:
     {
         return m_delay_sec;
     }
+    void setDelaySec(int delay_sec)
+    {
+        m_delay_sec = delay_sec;
+    }
     Glib::ustring getType() const
     {
         return m_type;
+    }
+    void setType(const Glib::ustring& type)
+    {
+        m_type = type;
     }
     // some WMS server offer prognosis but you prefer the current time
     bool isViewCurrentTime() const
     {
         return m_viewCurrentTime;
+    }
+    void setViewCurrentTime(bool viewCurrentTime)
+    {
+        m_viewCurrentTime = viewCurrentTime;
     }
 private:
     Glib::ustring m_name;
@@ -118,6 +138,7 @@ public:
     virtual bool latest(Glib::DateTime& datetime) = 0;
     virtual bool is_displayable() = 0;
     virtual void set_legend(Glib::RefPtr<Gdk::Pixbuf>& pixbuf) = 0;
+    virtual Glib::ustring get_dimension() = 0;
 
     int get_extent_width() {
         return m_extent_width;

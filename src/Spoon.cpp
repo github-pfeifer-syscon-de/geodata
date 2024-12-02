@@ -28,7 +28,6 @@ SpoonSession::SpoonSession(const Glib::ustring& user_agent)
     SoupLogger* log = soup_logger_new(SOUP_LOGGER_LOG_MINIMAL);
     soup_session_add_feature(m_session, SOUP_SESSION_FEATURE(log));
     #endif
-
     if (!user_agent.empty()) {
         soup_session_set_user_agent(m_session, user_agent.c_str());
     }
@@ -36,8 +35,8 @@ SpoonSession::SpoonSession(const Glib::ustring& user_agent)
 
 SpoonSession::~SpoonSession()
 {
-    if (m_session != nullptr) {
-        soup_session_abort(m_session); // any dangling requests are bad!
+    if (m_session) {
+        soup_session_abort(m_session); // any dangling request is bad!
         g_object_unref(m_session);
     }
 }
@@ -79,13 +78,14 @@ SpoonMessage::SpoonMessage(const Glib::ustring& host, const Glib::ustring& path)
 void
 SpoonMessage::addQuery(const Glib::ustring& name, const Glib::ustring& value)
 {
-    m_query.insert(std::pair<Glib::ustring, Glib::ustring>(name, value));
+    m_query.insert(std::make_pair(name, value));
 }
 
 Glib::ustring
 SpoonMessage::get_url()
 {
-    Glib::ustring url = m_host;
+    Glib::ustring url{m_host};
+    url.reserve(256);
     if (url.at(url.length()-1) != '/' &&
         (!m_path.empty() && m_path.at(0) != '/')) {
         url += '/';
@@ -112,6 +112,78 @@ GCancellable*
 SpoonMessage::get_cancelable()
 {
     return nullptr;
+}
+
+// return most likely Http codes
+const char*
+SpoonMessage::decodeStatus(int status)
+{
+    switch (status) {
+    case SOUP_STATUS_NONE:
+        return "No status available. (Eg, the message has not been sent yet)";
+    case SOUP_STATUS_CONTINUE:
+        return "Continue (HTTP)";
+    case SOUP_STATUS_SWITCHING_PROTOCOLS:
+        return "Switching Protocols (HTTP)";
+    case SOUP_STATUS_PROCESSING:
+        return "Processing (WebDAV)";
+    case SOUP_STATUS_OK:
+        return "200 Success (HTTP)";
+    case SOUP_STATUS_UNAUTHORIZED:
+        return "Unauthorized (HTTP)";
+    case SOUP_STATUS_PAYMENT_REQUIRED:
+        return "Payment Required (HTTP)";
+    case SOUP_STATUS_FORBIDDEN:
+        return "Forbidden (HTTP)";
+    case SOUP_STATUS_NOT_FOUND:
+        return "Not Found (HTTP)";
+    case SOUP_STATUS_METHOD_NOT_ALLOWED:
+        return "Method Not Allowed (HTTP)";
+    case SOUP_STATUS_NOT_ACCEPTABLE:
+        return "Not Acceptable (HTTP)";
+    case SOUP_STATUS_PROXY_AUTHENTICATION_REQUIRED:
+        return "Proxy Authentication Required (HTTP)";
+    case SOUP_STATUS_REQUEST_TIMEOUT:
+        return "Request Timeout (HTTP)";
+    case SOUP_STATUS_CONFLICT:
+        return "Conflict (HTTP)";
+    case SOUP_STATUS_GONE:
+        return "Gone (HTTP)";
+    case SOUP_STATUS_LENGTH_REQUIRED:
+        return "Length Required (HTTP)";
+    case SOUP_STATUS_PRECONDITION_FAILED:
+        return "Precondition Failed (HTTP)";
+    case SOUP_STATUS_REQUEST_ENTITY_TOO_LARGE:
+        return "Request Entity Too Large (HTTP)";
+    case SOUP_STATUS_REQUEST_URI_TOO_LONG:
+        return "Request-URI Too Long (HTTP)";
+    case SOUP_STATUS_UNSUPPORTED_MEDIA_TYPE:
+        return "Unsupported Media Type (HTTP)";
+    case SOUP_STATUS_REQUESTED_RANGE_NOT_SATISFIABLE:
+        return "Requested Range Not Satisfiable (HTTP)";
+    case SOUP_STATUS_EXPECTATION_FAILED:
+        return "Expectation Failed (HTTP)";
+    case SOUP_STATUS_MISDIRECTED_REQUEST:
+        return "Misdirected Request.";
+    case SOUP_STATUS_UNPROCESSABLE_ENTITY:
+        return "Unprocessable Entity (WebDAV)";
+    case SOUP_STATUS_LOCKED:
+        return "Locked (WebDAV)";
+    case SOUP_STATUS_FAILED_DEPENDENCY:
+        return "Failed Dependency (WebDAV)";
+    case SOUP_STATUS_INTERNAL_SERVER_ERROR:
+        return "Internal Server Error (HTTP)";
+    case SOUP_STATUS_NOT_IMPLEMENTED:
+        return "Not Implemented (HTTP)";
+    case SOUP_STATUS_BAD_GATEWAY:
+        return "Bad Gateway (HTTP)";
+    case SOUP_STATUS_SERVICE_UNAVAILABLE:
+        return "Service Unavailable (HTTP)";
+    case SOUP_STATUS_GATEWAY_TIMEOUT:
+        return "Gateway Timeout (HTTP)";
+    default:
+        return "Unknown";
+    }
 }
 
 SpoonMessageDirect::SpoonMessageDirect(const Glib::ustring& host, const Glib::ustring& path)
