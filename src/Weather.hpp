@@ -191,7 +191,7 @@ public:
     std::vector<std::shared_ptr<WeatherProduct>> get_products();
     std::shared_ptr<WeatherProduct> find_product(const Glib::ustring& productId);
     void add_product(std::shared_ptr<WeatherProduct> product);
-    std::string dump(const guint8 *data, gsize size);
+    static std::string dump(const guint8 *data, gsize size);
 
     using type_signal_products_completed = sigc::signal<void()>;
     type_signal_products_completed signal_products_completed();

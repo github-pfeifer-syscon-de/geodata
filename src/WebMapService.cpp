@@ -20,6 +20,7 @@
 #include <StringUtils.hpp>
 #include <limits>
 #include <Log.hpp>
+#include <psc_format.hpp>
 
 #include "WebMapService.hpp"
 #include "MapProjection.hpp"
@@ -60,7 +61,7 @@ WebMapImageRequest::WebMapImageRequest(WebMapService* webMapService
     }
     Glib::ustring bound = m_bounds.printValue(',');
     psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-        return std::format("time {} bound {} m_westSouth lon {} lat {} ref {} m_eastNorth lon {} lat {} ref {}"
+        return psc::fmt::format("time {} bound {} m_westSouth lon {} lat {} ref {} m_eastNorth lon {} lat {} ref {}"
                             , (latest ? latest.format_iso8601() : Glib::ustring{})
                             , bound
                             , m_bounds.getWestSouth().getLongitude()
@@ -100,7 +101,7 @@ WebMapImageRequest::mapping(Glib::RefPtr<Gdk::Pixbuf> pix, Glib::RefPtr<Gdk::Pix
             }
             else {
                 psc::log::Log::logAdd(psc::log::Level::Warn, [&] {
-                    return std::format( "Generated lin y {} while mapping exceeded size {}", linYsrc, pix_height);
+                    return psc::fmt::format( "Generated lin y {} while mapping exceeded size {}", linYsrc, pix_height);
                 });
             }
     	}
@@ -558,7 +559,7 @@ WebMapProduct::getLatestTime()
             auto now = Glib::DateTime::create_now_utc();
             now = now.add_seconds(-m_webMapService->getServiceConf()->getDelaySec()); // compare with past as service introduce delay
             psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-                return std::format("getLatestTime use now {} delay {}s period {}s using adjusting {}"
+                return psc::fmt::format("getLatestTime use now {} delay {}s period {}s using adjusting {}"
                         , now.format_iso8601(), m_webMapService->getServiceConf()->getDelaySec(), m_timePeriodSec, latestTime.format_iso8601());
             });
             while (latestTime.compare(now) > 0) {                   // dwd will include prognosis but we are more so keep rolling
@@ -567,7 +568,7 @@ WebMapProduct::getLatestTime()
         }
     }
     psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-        return std::format("result using {}"
+        return psc::fmt::format("result using {}"
                 , latestTime.format_iso8601());
     });
     return latestTime;
@@ -585,7 +586,7 @@ WebMapProduct::latest(Glib::DateTime& dateTime)
     }
     else {
         psc::log::Log::logAdd(psc::log::Level::Warn, [&] {
-            return std::format("Not parsed latest {}", latestTime.format_iso8601());
+            return psc::fmt::format("Not parsed latest {}", latestTime.format_iso8601());
         });
     }
     return false;

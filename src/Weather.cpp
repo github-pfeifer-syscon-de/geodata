@@ -18,7 +18,7 @@
 #include <iostream>
 #include <iomanip>
 #include <JsonHelper.hpp>
-#include <format>
+#include <psc_format.hpp>
 #include <StringUtils.hpp>
 
 #include "Weather.hpp"
@@ -43,7 +43,7 @@ WeatherImageRequest::get_pixbuf()
 {
     GInputStream *stream = get_stream();
     psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-        return std::format("pixbuf stream {}", static_cast<void*>(stream));
+        return psc::fmt::format("pixbuf stream {}", static_cast<void*>(stream));
     });
     if (stream) {
         try {
@@ -57,7 +57,7 @@ WeatherImageRequest::get_pixbuf()
                 }
                 if (error) {
                     psc::log::Log::logAdd(psc::log::Level::Error, [&] {
-                        return std::format("Error reading http {}", error->message);
+                        return psc::fmt::format("Error reading http {}", error->message);
                     });
                     g_error_free(error);
                     break;
@@ -65,7 +65,7 @@ WeatherImageRequest::get_pixbuf()
                 loader->write(data, len);
             }
             psc::log::Log::logAdd(psc::log::Level::Debug, [&] {
-                return std::format("pixbuf close {}", static_cast<void*>(stream));
+                return psc::fmt::format("pixbuf close {}", static_cast<void*>(stream));
             });
             g_input_stream_close(stream, nullptr, nullptr);
             loader->close();
@@ -73,7 +73,7 @@ WeatherImageRequest::get_pixbuf()
         }
         catch (const Glib::Error& ex) {    // Gdk::PixbufError
             psc::log::Log::logAdd(psc::log::Level::Error, [&] {
-                return std::format("Error reading image pixmap {}", ex);
+                return psc::fmt::format("Error reading image pixmap {}", ex);
             });
         }
     }
@@ -236,9 +236,9 @@ Weather::dump(const guint8 *data, gsize size)
         if (offset > 0u) {
             out << std::endl;
         }
-        out << std::format("{:04x}:", offset);
+        out << psc::fmt::format("{:04x}:", offset);
         for (gsize i = 0; i < std::min(size-offset, (gsize)16u); ++i)  {
-            out << std::format(" {:02x}", data[offset+i]);
+            out << psc::fmt::format(" {:02x}", data[offset+i]);
         }
         out << std::dec << std::setw(1) << " ";
         for (gsize i = 0; i < std::min(size-offset, (gsize)16u); ++i)  {
