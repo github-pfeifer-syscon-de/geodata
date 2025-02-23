@@ -19,8 +19,13 @@ For use needs to be installed:
 <pre>
   make install
 </pre>
+For Debian
+<pre>
+apt-get install libsoup-3.0-dev
+</pre>
 For windows (get msys2 https://www.msys2.org/) the files shoud adapt use e.g.<br>
 <pre>
+  pacman -S mingw-w64-x86_64-libsoup3
   ./configure --prefix=/mingw64
 </pre>
 
