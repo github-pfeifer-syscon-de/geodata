@@ -61,8 +61,8 @@ public:
     //   there is a delay (the place when this becomes visible is with the time
     //     dimension the latest values always is some minutes behind the actual time).
     //   e.g. the precipitation is announced with a interval P which presumably means ask any time, we will give you the nearest value.
-    //     but if you try to ask for now there is a error when requesting the images,
-    //     some fiddeling suggested the use of a 30 minutes delay
+    //     but if you try to ask for now, there is a error when requesting the images,
+    //     some fiddling suggested the use of a 30 minutes delay
     //     and the use of a minimum interval of 5 minutes is due
     //     to the nature off our application as a resource friendly tool.
     int getDelaySec() const

@@ -25,7 +25,7 @@ apt-get install libsoup-3.0-dev
 </pre>
 For windows (get msys2 https://www.msys2.org/) the files shoud adapt use e.g.<br>
 <pre>
-  pacman -S mingw-w64-x86_64-libsoup3
-  ./configure --prefix=/mingw64
+  pacman -S ${MINGW_PACKAGE_PREFIX}-libsoup3
+  ./configure --prefix=${MINGW_PREFIX}
 </pre>
 
