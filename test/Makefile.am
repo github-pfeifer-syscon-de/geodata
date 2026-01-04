@@ -8,7 +8,7 @@ AM_CPPFLAGS = \
 	$(GENERICGLM_CFLAGS) \
 	$(GENERICIMG_CFLAGS) \
 	$(GEODATA_CFLAGS) \
-	-I../src
+	-I $(top_srcdir)/src
 
 AM_CFLAGS= \
 	-Wall -Wpedantic
