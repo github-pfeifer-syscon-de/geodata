@@ -4,7 +4,7 @@ project('geodata', 'c', 'cpp'
                        , 'buildtype=debugoptimized'
                        , 'warning_level=3']
     , license : 'GPL-3.0'
-    , meson_version: '>= 1.9.0'
+    , meson_version: '>= 1.7.0'
     , version: '0.1.4')
 project_description = 'Common webMap (WMS) functions for glglobe'
 
@@ -51,6 +51,17 @@ project_target = both_libraries(meson.project_name()
     , version : meson.project_version())
 subdir('test')
 
+if meson.version().version_compare('>=1.9')
+    requires = deps
+else
+    requires = ''   # workaround dependencies meson < 1.9
+    foreach dep : deps
+        if dep.type_name() == 'pkgconfig'
+            requires += dep.name() + ', '
+        endif
+    endforeach
+endif
+
 pkg_mod = import('pkgconfig')
 pkg_mod.generate(
     name : meson.project_name()
@@ -58,7 +69,7 @@ pkg_mod.generate(
   , description : project_description
   , subdirs : meson.project_name()
   , libraries : project_target
-  , requires : deps
+  , requires : requires
 )
 
 # Make this library usable as a Meson subproject.
