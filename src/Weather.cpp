@@ -191,6 +191,13 @@ Weather::inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMe
 }
 
 void
+Weather::requestImage(const std::shared_ptr<WeatherImageRequest>& request)
+{
+    getSpoonSession()->send(request);
+}
+
+
+void
 Weather::add_product(std::shared_ptr<WeatherProduct> product)
 {
     const Glib::ustring& productId = product->get_id();

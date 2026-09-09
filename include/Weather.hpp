@@ -186,6 +186,8 @@ public:
     virtual void check_product(const Glib::ustring& weatherProductId) = 0;
     virtual void capabilities() = 0;
     virtual void request(const Glib::ustring& productId) = 0;
+    void requestImage(const std::shared_ptr<WeatherImageRequest>& request);
+
     virtual Glib::RefPtr<Gdk::Pixbuf> get_legend(std::shared_ptr<WeatherProduct>& product) = 0;
     void inst_on_image_callback(const Glib::ustring& error, int status, SpoonMessageStream* message);
     void inst_on_legend_callback(const Glib::ustring& error, int status, SpoonMessageDirect* message, std::shared_ptr<WeatherProduct> product);

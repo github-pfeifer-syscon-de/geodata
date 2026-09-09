@@ -690,7 +690,7 @@ WebMapService::request(const Glib::ustring& productId)
                         , xOffs, image_size2
                         , product);
             logMsg(psc::log::Level::Debug, Glib::ustring::sprintf("request NW %s", requestWN->get_url()));
-            getSpoonSession()->send(requestWN);
+            requestImage(requestWN);
         }
         if (product->getEastNorth().getLongitude() > 0.0) {
             double linLonEast = product->getEastNorth().getLinearLongitude();
@@ -708,7 +708,7 @@ WebMapService::request(const Glib::ustring& productId)
             #ifdef WEATHER_DEBUG
             std::cout << "WebMapService::request product " << product->get_id() << " url " << requestEN->get_url() << std::endl;
             #endif
-            getSpoonSession()->send(requestEN);
+            requestImage(requestEN);
         }
     }
     if (product->getWestSouth().getLatitude() < 0.0) {    // query if needed
@@ -725,7 +725,7 @@ WebMapService::request(const Glib::ustring& productId)
                         , image_size2 - xOffs, image_size2
                         , xOffs, image_size2
                         , product);
-            getSpoonSession()->send(requestWS);
+            requestImage(requestWS);
         }
         if (product->getEastNorth().getLongitude() > 0.0) {
             double linLonEast = product->getEastNorth().getLinearLongitude();
@@ -740,7 +740,7 @@ WebMapService::request(const Glib::ustring& productId)
                         , image_size2, image_size2
                         , xOffs, image_size2
                         , product);
-            getSpoonSession()->send(requestES);
+            requestImage(requestES);
         }
     }
 }
