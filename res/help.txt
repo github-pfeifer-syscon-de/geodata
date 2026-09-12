@@ -1,0 +1,63 @@
+Weather display
+
+Allows to add a additional service to the weather choices
+(or modify a existing).
+
+There are many services available that offer realtime images
+from space for display with you browser.
+Some offer WMS-services to integrate these here
+check for API-documentation or something similar.
+
+Type
+
+Select one of WebMapService (WMS) which is provided by many servers,
+or RealEarth (which is non-generic see https://realearth.ssec.wisc.edu/)
+
+Name
+
+A unique name that helps you to idenifiy the service.
+
+Address
+
+The base address or URL for the info request
+(the http parameters are added internaly,
+to test with your browser use the base address and add
+"?service=WMS&version=1.3.0&request=GetCapabilities"
+this sould display a Xml-File that describes the capabilites of the server,
+but if not this might display a helpful error page).
+
+Delay
+
+Services are usually helpful to use the nearest time for a historic request,
+but picky if you get to close to the actual time
+(this can be estimated from the difference of end value of the time dimension to actual time)
+If you get just a blank image it is probably helpful to increase the delay.
+
+Use near current time
+
+Usually false,
+set true if service offers some prognosis but you want to view current time.
+
+Enter some useful values and click "Refresh" to check if it is working.
+You sould get entries in "Products" that describe the available choices.
+The column period is displayed in it's original form (Iso-period)
+but should be easily understandable e.g. "PT15M" stands for period time 15 minutes
+(for a more complete documentation see
+http://portal.opengeospatial.org/files/?artifact_id=14416
+which tends to be a bit abstract, so best check the documentation
+provided with the service of your choice).
+
+If anything goes wrong check "Protocol" the messages that have a level
+of Wrn (Warn),Err (Error) should indicate what went wrong
+e.g. if the address is wrong you get a message like "...response 404 Not found"
+which refers to the Http status for some codes a hint is displayed,
+for others check the http status e.g.
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Status .
+
+This is targeted on some near time images provided with regular intervals.
+This is not a GIS (Geo info system) so it will not work with services
+that offer fragmented timelines / historic images
+(QGis might help you better with these).
+
+Any links/data/infos are provided for reference only,
+the rights belong to their respective owner.

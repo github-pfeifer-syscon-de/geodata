@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <gresource prefix="/de/pfeifer_syscon/geodata">
+    <file preprocess="xml-stripblanks">weather-dlg.ui</file>
+    <file>help.txt</file>
+    <file>help_de.txt</file>
+  </gresource>
+</gresources>

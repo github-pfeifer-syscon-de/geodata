@@ -8,6 +8,11 @@ sources = files(
     , 'GeoCoordinate.cpp'
     , 'MapProjection.cpp'
     , 'GeoJsonSimplifyHandler.cpp'
-    , 'GeoJson.cpp' )
+    , 'GeoJson.cpp'
+    , 'BoundsDisplay.cpp'
+    , 'WeatherConfigGrid.cpp'
+    , 'WeatherConfig.cpp'
+    , 'WeatherDialog.cpp'
+)
 
 

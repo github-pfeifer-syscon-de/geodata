@@ -1,11 +1,11 @@
 project('geodata', 'c', 'cpp'
-    , default_options: ['c_std=c11'
+    , default_options: ['c_std=c17'
                        , 'cpp_std=c++20'
                        , 'buildtype=debugoptimized'
                        , 'warning_level=3']
     , license : 'GPL-3.0'
     , meson_version: '>= 1.7.0'
-    , version: '0.1.6')
+    , version: '0.2.0')
 project_description = 'Common webMap (WMS) functions for glglobe'
 
 thread_deps     = dependency('threads')
@@ -17,6 +17,8 @@ libsoup3_deps    = dependency('libsoup-3.0')
 cc = meson.get_compiler('c')
 disable_flags = [
     '-Wno-unused-parameter'  # limit the compiler noisiness
+   ,'-Wno-overlength-strings'
+   ,'-Wconversion'
 ]
 foreach cflag : disable_flags
     if cc.has_argument(cflag)
@@ -32,8 +34,10 @@ add_project_arguments('-DPACKAGE_LOCALE_DIR="' + localdir + '"', language: 'cpp'
 public_headers = include_directories('include')
 
 conf = configuration_data()
-conf.set_quoted('VERSION', meson.project_version())     # Surround the version in quotes to make it a C string
+conf.set_quoted('GEODATA_VERSION', meson.project_version())     # Surround the version in quotes to make it a C string
+conf.set_quoted('GEODATA_RESOURCE_PREFIX', '/de/pfeifer_syscon/geodata/')
 
+subdir('res')
 subdir('include')
 subdir('src')
 deps = [ genericimg_deps
@@ -41,7 +45,7 @@ deps = [ genericimg_deps
        , libsoup3_deps
        , thread_deps
        ]
-# append resource.c
+sources += app_resources
 project_target = both_libraries(meson.project_name()
     , sources
     , install : true

@@ -13,7 +13,12 @@ project_headers = [
     , 'GeoCoordinate.hpp'
     , 'MapProjection.hpp'
     , 'GeoJsonSimplifyHandler.hpp'
-    , 'GeoJson.hpp' ]
+    , 'GeoJson.hpp'
+    , 'BoundsDisplay.hpp'
+    , 'WeatherConfigGrid.hpp'
+    , 'WeatherConfig.hpp'
+    , 'WeatherDialog.hpp'
+]
 # Make this library usable from the system's
 # package manager.
 install_headers(project_headers, subdir : meson.project_name())

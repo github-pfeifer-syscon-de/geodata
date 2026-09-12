@@ -1,0 +1,77 @@
+Wettervorschau
+
+Erlaubt es zusätzliche Dienste zur Anzeige von Satellitenbilder hinzuzufügen
+(oder vorhandene zu modifiziern).
+
+Es existiert eine erhebliche Menge an Dienste
+die nahezu Echtzeitbilder von Sateliten zur Anzeige im Browser bereitstellen.
+Einige bieten eine WMS-Schnittestelle (Web-Map-Service) an
+um diese hier zu integrieren, oft sind diese
+Informationen in der Dokumentation mit dem Stichwort API oder ähnlich enthalten.
+
+Typ
+
+Zur Auswahl stehen WebMapService (WMS) welcher von vielen
+Diensten bereitgestellt wird,
+oder RealEarth (dieser ist nicht allgemein verfügbar s. https://realearth.ssec.wisc.edu/)
+
+Name
+
+Ein frei wählbarer eindeutiger Name der dazu dient den Dienst zu identifizieren.
+
+Adresse
+
+Die Basisadresse oder URL um die angebotenen
+Produkte/Bilder zu identfiziren.
+(Die Http-Parameter werden der Anfrage intern hinzugeüfgt,
+um die Adresse mit dem Browser zu überprüfen
+(um ggf. einen lesbaren Hinweis für eine unpassende Auswahl zu erhalten)
+kann die Basisadresse mit diesen Parametern ergänzt werden:
+"?service=WMS&version=1.3.0&request=GetCapabilities"
+das Ergebnis sollte eine Xml-Datei sein die die Fähigkeiten des Servers beschreibt.
+
+Verzögerung
+
+Dienste sind gewöhnlich hilfreich eine historische Anfrage auf den nächsten
+passende Zeitpunkt abzubilden, jedoch wenn dieser zu nahe an der
+aktuellen Zeit liegt erfolgt ggf. keine Ausgabe eines Bildes
+somit kann bei einem enstsprechenden Problem eine Erhöhung dieses Wertes helfen.
+(diese Zeit kann aus der Differenz der aktuellen Zeit und der
+Spalte Ende geschätzt werden, das wird mit von der Periode beeinflusst).
+
+Verwende nahe der aktuellen Zeit
+
+Gewöhnlich nicht gesetzt,
+wenn gesetzt wird bei Diensten die eine Prognose anbieten die
+aktuelle Zeit gewählt.
+
+Geben Sie sinnvolle Werte eine und klicken Sie "Aktualisieren"
+um zu überpfüfen ob die Angaben verwendet werden können.
+Im Erfolgsfall erhalten Sie unter "Produkte" eine
+Liste der verfügbaren Auswahlen.
+Die Spalte Periode wird in der orginalen Form (Iso-Periode) angezeigt,
+diese sollte aber einfach zu verstehen sein z.B. "PT15M" steht für eine Aktualisierngsrate von 15 Minuten.
+(für eine vollständiger Dokumentaion s.
+http://portal.opengeospatial.org/files/?artifact_id=14416
+dies kann aber unter Umständen etwas abstrakt sein,
+so kann ggf. die Dokumentation des Anbieter des Services hilfreicher sein).
+
+Sollte bei der Abfrage ein Fehler auftauchen wird dieser
+in der Protokollliste eingetragen.
+Wichtig sind die Einträge mit Wrn (Warnung),Err (Error)
+dies sollte ein Hinweis zum aufgetrenten Problem ergeben.
+z.B. bei einer nicht korrekten Adresse erscheint eine Meldung wie "...response 404 Not found"
+dies bezieht sich auf den Http Statuscode, dieser wird für die häufigsten Fälle mit einem Hinweis versehen,
+für weitere steht eine Dokumentation unter
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+zur Verfügung.
+
+Diese Software wurde für Dienste entwickelt die ihre Bilddaten
+mit akteullem Bezug und in regelmässigen Abständen bereitstellen.
+Dies ist kein GIS (Geo info system) somit sind die Funktionen
+mit Diensten die eine bruchstückhafte Historie oder
+nur historische Daten bereitstellen nicht sinnvoll nutzbar
+(z.B. QGis kann ggf. für diese Fälle besser nutzbar sein).
+
+All Links/Daten/Informationen werden als Referenz bereitgestellt,
+die Rechte ghören ihren jeweiligen Eigentümern.
