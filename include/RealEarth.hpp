@@ -84,6 +84,7 @@ public:
     }
     bool is_displayable() override;
     bool is_latest(const Glib::ustring& latest);
+    bool is_latest() override;
     bool latest(Glib::DateTime& datetime) override;
     void set_extent(JsonObject* entry);
     Glib::ustring get_dimension() override;

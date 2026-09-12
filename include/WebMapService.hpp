@@ -137,7 +137,7 @@ public:
     Glib::ustring get_dimension() override;
     Glib::ustring get_legend_url();
     CoordRefSystem getCoordRefSystem();
-    bool is_latest();
+    bool is_latest() override;
 
 
     static constexpr auto SECS_PER_MINUTE{60};

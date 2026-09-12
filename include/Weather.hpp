@@ -140,6 +140,7 @@ public:
     virtual bool is_displayable() = 0;
     virtual void set_legend(Glib::RefPtr<Gdk::Pixbuf>& pixbuf) = 0;
     virtual Glib::ustring get_dimension() = 0;
+    virtual bool is_latest() = 0;
 
     int get_extent_width() {
         return m_extent_width;

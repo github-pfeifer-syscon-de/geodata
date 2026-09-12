@@ -178,6 +178,15 @@ RealEarthProduct::is_latest(const Glib::ustring& latest)
     return false;
 }
 
+bool
+RealEarthProduct::is_latest()
+{
+    auto date = Glib::DateTime::create_now_utc();
+    latest(date);
+    return false;   // this needs more considerations as iam at the moment willing to invest...
+}
+
+
 Glib::ustring
 RealEarthProduct::get_dimension()
 {
