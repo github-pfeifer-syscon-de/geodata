@@ -27,21 +27,24 @@
 #include "WebMapService.hpp"
 #include "WeatherConfig.hpp"
 
+WeatherConfig::WeatherConfig(const char* config_name)
+: KeyConfig{config_name}
+{
+
+}
 
 void
 WeatherConfig::read()
 {
-    m_config = new Glib::KeyFile();
-    std::string cfg = get_config_name();
-    auto file = Gio::File::create_for_path(cfg);
+    auto file = Gio::File::create_for_path(getConfigName());
     if (file->query_exists()) {  // it is not a error, if the file doesn't exists
         try {
-            if (!m_config->load_from_file(cfg, Glib::KEY_FILE_NONE)) {
-                std::cerr << "Error loading " << cfg << std::endl;
+            if (!m_config->load_from_file(getConfigName(), Glib::KEY_FILE_NONE)) {
+                std::cerr << "Error loading " << getConfigName() << std::endl;
             }
         }
         catch (const Glib::FileError& exc) {
-            Glib::ustring msg{psc::fmt::format("Error {} loading config {}", exc.what(), cfg)};
+            Glib::ustring msg{psc::fmt::format("Error {} loading config {}", exc.what(), m_configName)};
             psc::log::Log::logAdd(psc::log::Level::Error, msg);
         }
     }
@@ -91,7 +94,19 @@ WeatherConfig::read()
             m_weatherServices.push_back(weatherService);
         }
     }
+}
 
+void
+WeatherConfig::saveConfig()
+{
+    // since we migrated this class, don't use base function
+    std::cout << "This function KeyConfig::saveConfig was disabled" << std::endl;
+}
+
+void
+WeatherConfig::loadConfig()
+{
+    // since we migrated this class, don't use base function
 }
 
 
@@ -155,12 +170,11 @@ WeatherConfig::save()
                 m_config->set_boolean(weatherGrp, WEATHER_SERVICE_LOCAL_TIME, weatherService->isViewCurrentTime());
             }
         }
-        auto cfg = get_config_name();
         try {
-            ret = m_config->save_to_file(cfg);
+            ret = m_config->save_to_file(getConfigName());
         }
         catch (const Glib::FileError& exc) {
-            Glib::ustring msg{psc::fmt::format("Error {} saving config {}", exc.what(), cfg)};
+            std::string msg{psc::fmt::format("Error {} saving config {}", exc.what(), getConfigName())};
             psc::log::Log::logAdd(psc::log::Level::Error, msg);
         }
     }

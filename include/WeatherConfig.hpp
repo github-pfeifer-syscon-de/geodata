@@ -19,15 +19,17 @@
 
 #pragma once
 
-#include <vector>
 #include <glibmm.h>
+#include <vector>
+#include <KeyConfig.hpp>
 
 #include "Weather.hpp"
 
 class WeatherConfig
+: public KeyConfig
 {
 public:
-    WeatherConfig() = default;
+    WeatherConfig(const char* config_name);
     virtual ~WeatherConfig() = default;
 
     virtual void read();
@@ -62,11 +64,11 @@ public:
     static constexpr auto DEFAULT_WEATHER_IMAGE_SIZE{1024}; // used for texture so requires power of two
     static constexpr auto MIN_WEATHER_IMAGE_SIZE{256};      // as above
     static constexpr auto MAX_WEATHER_IMAGE_SIZE{4096};     // as above, higher values (e.g. 2048) lead to size limit exceeded so check with your prefered service
-
+    virtual void saveConfig() override;
 protected:
-    virtual std::string get_config_name() = 0;    
     virtual std::string get_main_config_group() = 0;
     void migrateWeatherServices(uint32_t i);
+    void loadConfig() override;
 
     static constexpr auto GRP_WEATHER{"weather"};
     static constexpr auto WEATHER_IMAGE_SIZE{"weatherImageSize"};
@@ -82,8 +84,7 @@ protected:
     static constexpr auto MIN_UPDATE_DELAY_SEC{5 * 60};
     static constexpr auto DEF_UPDATE_DELAY_SEC{30 * 60};
 
-    Glib::KeyFile *m_config{nullptr};
-    
+
     int m_weatherImageSize{0};
     std::vector<std::shared_ptr<WebMapServiceConf>> m_weatherServices;
 
