@@ -21,6 +21,7 @@
 #include <glibmm.h>
 #include <cmath>
 #include <charconv>
+#include <format>
 #include <GenericGlmCompat.hpp> // providers pi constants for windows
 
 class CoordRefSystem {
@@ -116,7 +117,37 @@ public:
     static double parseDouble(const Glib::ustring& sval);
     // format by c-locale
     static Glib::ustring formatDouble(double val, std::chars_format fmt = std::chars_format::fixed, int precision = 4);
-
+    void set(bool longitude, double value) {
+        if (longitude) {
+            this->m_longitude = value;
+        }
+        else {
+            this->m_latitude = value;
+        }
+    }
+    void min(const GeoCoordinate& min) {
+        m_longitude = std::min(min.m_longitude, m_longitude);
+        m_latitude = std::min(min.m_latitude, m_latitude);
+    }
+    void max(const GeoCoordinate& max) {
+        m_longitude = std::max(max.m_longitude, m_longitude);
+        m_latitude = std::max(max.m_latitude, m_latitude);
+    }
+    auto floor() const ->GeoCoordinate {
+        return GeoCoordinate{std::floor(m_longitude), std::floor(m_latitude), m_coordRef};
+    }
+    auto ceil() const ->GeoCoordinate {
+        return GeoCoordinate{std::ceil(m_longitude), std::ceil(m_latitude), m_coordRef};
+    }
+    auto operator-(const GeoCoordinate& sub) const->GeoCoordinate {
+        return GeoCoordinate{m_longitude - sub.m_longitude, m_latitude - sub.m_latitude, m_coordRef};
+    }
+    auto operator+(const GeoCoordinate& add) const->GeoCoordinate {
+        return GeoCoordinate{m_longitude + add.m_longitude, m_latitude + add.m_latitude, m_coordRef};
+    }
+    std::string toString() {
+        return std::format("lon {}, lat {}", m_longitude, m_latitude);
+    }
 private:
     double m_longitude{0.0};
     double m_latitude{0.0};
