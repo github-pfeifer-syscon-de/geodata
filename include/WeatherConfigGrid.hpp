@@ -33,6 +33,9 @@ public:
     virtual std::shared_ptr<Weather> get_weather() = 0;
     virtual void request_weather_product() = 0;
     virtual std::shared_ptr<Weather> refresh_weather_service() = 0;
+    virtual void closeConfigDlg() = 0;
+    virtual void save_config() = 0;
+    virtual void on_action_preferences() = 0;    // reopen config
 };
 
 class BaseConfigGrid
@@ -59,6 +62,11 @@ public:
 protected:
     void weather_product_changed();
     void weather_service_changed();
+    void show_weather_edit(
+        Gtk::ApplicationWindow* appWin
+        , const Glib::ustring& idStr
+        , bool add);
+
 private:
     Gtk::Image* m_LegendWeather{nullptr};
     Gtk::TextView* m_DescWeather{nullptr};

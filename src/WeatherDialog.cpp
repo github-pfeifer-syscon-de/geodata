@@ -118,7 +118,7 @@ WeatherDialog::WeatherDialog(BaseObjectType* cobject, const Glib::RefPtr<Gtk::Bu
         }
     }
     if (add || m_idx < 0) {
-        m_idx = services.size();
+        m_idx = static_cast<int32_t>(services.size());
     }
 }
 

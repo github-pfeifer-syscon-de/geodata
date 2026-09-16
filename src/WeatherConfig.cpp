@@ -51,6 +51,7 @@ WeatherConfig::read()
     if (!m_config->has_group(get_main_config_group())) {   // create group
         m_config->set_string(get_main_config_group(), LOG_LEVEL, DEFAULT_LOG_LEVEL);
     }
+    m_weatherServices.clear(); // since read may get used repeatedly avoid duplicates
     for (uint32_t i = 0; i < MAX_WEATHER_SERVICES; ++i) {
         migrateWeatherServices(i);
         std::shared_ptr<WebMapServiceConf> weatherService;
@@ -100,13 +101,14 @@ void
 WeatherConfig::saveConfig()
 {
     // since we migrated this class, don't use base function
-    std::cout << "This function KeyConfig::saveConfig was disabled" << std::endl;
+    std::cout << "This function KeyConfig::saveConfig was disabled!" << std::endl;
 }
 
 void
 WeatherConfig::loadConfig()
 {
     // since we migrated this class, don't use base function
+    std::cout << "This function KeyConfig::loadConfig was disabled!" << std::endl;
 }
 
 
@@ -159,15 +161,17 @@ WeatherConfig::save()
         if (m_weatherImageSize > 0) {
             m_config->set_integer(get_main_config_group(), WEATHER_IMAGE_SIZE, m_weatherImageSize);
         }
+        int n{};
         for (uint32_t i = 0; i < m_weatherServices.size(); ++i) {
             auto weatherService = m_weatherServices[i];
             if (weatherService) {
-                auto weatherGrp = Glib::ustring::sprintf("%s%d", GRP_WEATHER, i);
+                auto weatherGrp = Glib::ustring::sprintf("%s%d", GRP_WEATHER, n);
                 m_config->set_string(weatherGrp, WEATHER_SERVICE_ADDRESS, weatherService->getAddress());
                 m_config->set_string(weatherGrp, WEATHER_SERVICE_NAME, weatherService->getName());
                 m_config->set_integer(weatherGrp, WEATHER_SERVICE_DELAY, weatherService->getDelaySec());
                 m_config->set_string(weatherGrp, WEATHER_SERVICE_TYPE, weatherService->getType());
                 m_config->set_boolean(weatherGrp, WEATHER_SERVICE_LOCAL_TIME, weatherService->isViewCurrentTime());
+                ++n;
             }
         }
         try {

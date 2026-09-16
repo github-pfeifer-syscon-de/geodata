@@ -18,6 +18,7 @@
 
 
 #include "WeatherConfig.hpp"
+#include "WeatherDialog.hpp"
 #include "WeatherConfig.hpp"
 #include "BoundsDisplay.hpp"
 #include "WeatherConfigGrid.hpp"
@@ -72,8 +73,12 @@ ConfigWeatherGrid::ConfigWeatherGrid(BaseObjectType* cobject, const Glib::RefPtr
         auto win = dynamic_cast<Gtk::ApplicationWindow*>(appl->get_active_window());
         if (win) {
             auto selected = m_weatherServiceCombo->get_active_id();
-            auto var = Glib::Variant<Glib::ustring>::create(selected);
-            win->activate_action("weatherEdit", var);
+            show_weather_edit(win, selected , false);
+            //auto var = Glib::Variant<Glib::ustring>::create(selected);
+            //win->activate_action("weatherEdit", var);
+        }
+        else {
+            std::cout << "No window was found!" << std::endl;
         }
     });
     refBuilder->get_widget("weatherAdd", m_weatherAdd);
@@ -82,14 +87,37 @@ ConfigWeatherGrid::ConfigWeatherGrid(BaseObjectType* cobject, const Glib::RefPtr
         auto win = dynamic_cast<Gtk::ApplicationWindow*>(appl->get_active_window());
         if (win) {
             auto selected = m_weatherServiceCombo->get_active_id();
-            auto var = Glib::Variant<Glib::ustring>::create(selected);
-            win->activate_action("weatherAdd", var);
+            show_weather_edit(win, selected , true);
+            //auto var = Glib::Variant<Glib::ustring>::create(selected);
+            //win->activate_action("weatherAdd", var);
         }
     });
     m_weatherAdd->set_sensitive(m_config->getWebMapServices().size() < WeatherConfig::MAX_WEATHER_SERVICES);
 
     setWeatherDescription();
 }
+
+void
+ConfigWeatherGrid::show_weather_edit(Gtk::ApplicationWindow* appWin, const Glib::ustring& idStr, bool add)
+{
+    //std::cout << "GlGlobeWindow::on_action_weather id" << idStr << std::endl;
+    // to simplify the overall handling
+    //   close weather dialog here and reopen when weather setup is done
+    m_sphereView->closeConfigDlg();
+    auto weatherDlg = WeatherDialog::create(m_config, idStr, add);
+    if (weatherDlg) {
+
+        weatherDlg->set_transient_for(*appWin);
+        int ret = weatherDlg->run();
+        weatherDlg->hide();
+        if (ret == Gtk::RESPONSE_OK) {
+            m_sphereView->save_config();
+            m_sphereView->on_action_preferences();    // reopen config
+        }
+        delete weatherDlg;      // cleanup
+    }
+}
+
 
 void
 ConfigWeatherGrid::setLegendWeather(Glib::RefPtr<Gdk::Pixbuf> legend)
