@@ -73,7 +73,7 @@ public:
 
     static constexpr const int OK{SOUP_STATUS_OK};
     // Override this if you need a cancelable message (and use the return of SpoonMessage::send)
-    GCancellable* get_cancelable();
+    virtual GCancellable* get_cancelable();
     virtual void send() = 0;
     static const char* decodeStatus(int status);
 

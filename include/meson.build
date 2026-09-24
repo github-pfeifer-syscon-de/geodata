@@ -18,6 +18,9 @@ project_headers = [
     , 'WeatherConfigGrid.hpp'
     , 'WeatherConfig.hpp'
     , 'WeatherDialog.hpp'
+    , 'Flight.hpp'
+    , 'Flights.hpp'
+    , 'OpenskyFlights.hpp'
 ]
 # Make this library usable from the system's
 # package manager.

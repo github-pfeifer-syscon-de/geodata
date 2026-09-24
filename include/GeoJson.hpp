@@ -21,8 +21,7 @@
 #include <glibmm.h>
 #include <vector>
 #include <memory>
-
-#include "JsonHelper.hpp"
+#include <JsonHelper.hpp>
 
 class Geometry;
 

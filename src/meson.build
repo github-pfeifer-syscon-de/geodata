@@ -1,11 +1,6 @@
 
-
 sources = files(
       'Spoon.cpp'
-    , 'Weather.cpp'
-    , 'RealEarth.cpp'
-    , 'WebMapService.cpp'
-    , 'GeoCoordinate.cpp'
     , 'MapProjection.cpp'
     , 'GeoJsonSimplifyHandler.cpp'
     , 'GeoJson.cpp'
@@ -14,5 +9,18 @@ sources = files(
     , 'WeatherConfig.cpp'
     , 'WeatherDialog.cpp'
 )
+weather_sources = files(
+    'Weather.cpp'
+    , 'RealEarth.cpp'
+    , 'WebMapService.cpp'
+    , 'GeoCoordinate.cpp'
+)
+sources += weather_sources
+flight_sources = files(
+    'Flight.cpp'
+    , 'Flights.cpp'
+    , 'OpenskyFlights.cpp'
+)
+sources += flight_sources
 
 
