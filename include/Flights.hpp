@@ -42,6 +42,8 @@ public:
     virtual ~Flights() = default;
 
     virtual void query(GeoBounds& bounds) = 0;
+    virtual std::string getServiceName() = 0;
+    static std::vector<const char*> getServiceNames();
     static std::shared_ptr<Flights> getService(const std::string& service, FlightsConsumer* flightsConsumer);
     static std::chrono::duration<gint64, std::micro> asDuration(Glib::TimeSpan& timeSpan);
     void setLastQuery(const Glib::DateTime& lastQuery);

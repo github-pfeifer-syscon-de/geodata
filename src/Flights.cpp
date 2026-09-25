@@ -34,6 +34,13 @@ Flights::getSpoonSession()
     return spoonSession;
 }
 
+std::vector<const char*>
+Flights::getServiceNames()
+{
+    std::vector<const char*> serviceNames;
+    serviceNames.push_back(OpenskyFlights::SERVICE_NAME);
+    return serviceNames;
+}
 
 PtrFlights
 Flights::getService(const std::string& service, FlightsConsumer* flightsConsumer)

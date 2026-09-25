@@ -126,6 +126,13 @@ OpenskyFlights::query(GeoBounds& bounds)
     getSpoonSession()->send(req);
 }
 
+std::string
+OpenskyFlights::getServiceName()
+{
+    return SERVICE_NAME;
+}
+
+
 void
 OpenskyFlights::notify(const Glib::ustring& error, int status, SpoonMessageStream* message)
 {

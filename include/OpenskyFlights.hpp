@@ -75,6 +75,8 @@ public:
     virtual ~OpenskyFlights() = default;
 
     void query(GeoBounds& bounds) override;
+    std::string getServiceName() override;
+
     void notify(const Glib::ustring& error, int status, SpoonMessageStream* message);
 
 
