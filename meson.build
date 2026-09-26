@@ -5,7 +5,7 @@ project('geodata', 'c', 'cpp'
                        , 'warning_level=3']
     , license : 'GPL-3.0'
     , meson_version: '>= 1.7.0'
-    , version: '0.2.1')
+    , version: '0.2.2')
 project_description = 'Common webMap (WMS) and flight infos'
 
 thread_deps     = dependency('threads')

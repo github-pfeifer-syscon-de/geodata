@@ -16,12 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
+
 #include "Flights.hpp"
 #include "OpenskyFlights.hpp"
 #include "Spoon.hpp"
 
-Flights::Flights(FlightsConsumer* flightsConsumer)
-: m_flightsConsumer{flightsConsumer}
+Flights::Flights()
 {
 }
 
@@ -43,10 +44,10 @@ Flights::getServiceNames()
 }
 
 PtrFlights
-Flights::getService(const std::string& service, FlightsConsumer* flightsConsumer)
+Flights::getService(const std::string& service)
 {
     if (service == OpenskyFlights::SERVICE_NAME) {
-        return std::make_shared<OpenskyFlights>(flightsConsumer);
+        return std::make_shared<OpenskyFlights>();
     }
     return PtrFlights{};
 }
@@ -67,4 +68,56 @@ Glib::DateTime
 Flights::getLastQuery()
 {
     return m_lastQuery;
+}
+
+void
+Flights::addListener(FlightsConsumer* flightsConsumer)
+{
+    for (auto* consumer : m_flightConsumers) {
+        if (consumer == flightsConsumer) {
+            return;
+        }
+    }
+    m_flightConsumers.push_back(flightsConsumer);
+}
+void
+Flights::removeListener(FlightsConsumer* flightsConsumer)
+{
+    for (auto iter = m_flightConsumers.begin(); iter != m_flightConsumers.end(); ) {
+        auto consumer = *iter;
+        if (consumer == flightsConsumer) {
+            iter = m_flightConsumers.erase(iter);
+        }
+        else {
+            ++iter;
+        }
+    }
+}
+
+void
+Flights::notifyAll(std::vector<PtrFlight> flights)
+{
+    if (m_flightConsumers.empty()) {
+        std::cout << "Flights::notifyAll"
+                  << " flights " << flights.size()
+                  << " no one listened!" << std::endl;
+        return;
+    }
+    for (auto* consumer : m_flightConsumers) {
+        consumer->update(flights);
+    }
+}
+void
+Flights::notifyAll(const Glib::ustring& error, int status)
+{
+    if (m_flightConsumers.empty()) {
+        std::cout << "Flights::notifyAll"
+                  << " errror " << error
+                  << " status " << status
+                  << " no one listened!" << std::endl;
+        return;
+    }
+    for (auto* consumer : m_flightConsumers) {
+        consumer->notifyError(error, status);
+    }
 }

@@ -105,8 +105,8 @@ OpenskyFlight::parse(JsonArray* state)
 }
 
 
-OpenskyFlights::OpenskyFlights(FlightsConsumer* flightsConsumer)
-: Flights(flightsConsumer)
+OpenskyFlights::OpenskyFlights()
+: Flights()
 {
 }
 
@@ -136,54 +136,47 @@ OpenskyFlights::getServiceName()
 void
 OpenskyFlights::notify(const Glib::ustring& error, int status, SpoonMessageStream* message)
 {
-    if (m_flightsConsumer != nullptr) {
-        if (error != "" || status != SpoonMessage::OK) {
-            m_flightsConsumer->notifyError(error, status);
-        }
-        else {
-            auto openskyRequest = dynamic_cast<OpenskyRequest*>(message);
-            if (openskyRequest != nullptr) {
-                std::list<PtrFlight> flights;
-                try {
-                    JsonHelper jsonHelper;
-                    auto strm = openskyRequest->get_stream();
-                    jsonHelper.load_data(strm);
-                    //auto parser = json_parser_new();
-                    //GError *error{};
-                    //GCancellable cancel;  will not be cancelable
-                    //json_parser_load_from_stream(parser, strm, nullptr, &error);
-                    //if (error != nullptr) {
-                    //JsonNode* rootNode = json_parser_get_root(parser);
-                    //JsonObject* rootObj = json_node_get_object(rootNode);
-                    JsonObject* rootObj = jsonHelper.get_root_object();
-                    auto states = json_object_get_array_member(rootObj, "states");
-                    int statesLen = json_array_get_length(states);
-                    for (int iState = 0; iState < statesLen; ++iState) {
-                        JsonArray* state = json_array_get_array_element(states, iState);
-                        auto flight = std::make_shared<OpenskyFlight>();
-                        flight->parse(state);
-                        flights.emplace_back(std::move(flight));
-                    }
-                    m_flightsConsumer->update(flights);
-                }
-                catch (const JsonException& ex) {
-                    auto msg = Glib::ustring::sprintf("Unable to parse flight data %s", ex.what());
-                    m_flightsConsumer->notifyError(msg, 0);
-                }
-            }
-            else {
-                std::cout << "OpenskyFlights::notify"
-                          << " errror " << error
-                          << " status " << status
-                          << " no opensky req!" << std::endl;
-            }
-        }
+    if (error != "" || status != SpoonMessage::OK) {
+        notifyAll(error, status);
     }
     else {
-        std::cout << "OpenskyFlights::notify"
-                  << " errror " << error
-                  << " status " << status
-                  << " no consumer!" << std::endl;
+        auto openskyRequest = dynamic_cast<OpenskyRequest*>(message);
+        if (openskyRequest != nullptr) {
+            std::vector<PtrFlight> flights;
+            flights.reserve(32);
+            try {
+                JsonHelper jsonHelper;
+                auto strm = openskyRequest->get_stream();
+                jsonHelper.load_data(strm);
+                //auto parser = json_parser_new();
+                //GError *error{};
+                //GCancellable cancel;  will not be cancelable
+                //json_parser_load_from_stream(parser, strm, nullptr, &error);
+                //if (error != nullptr) {
+                //JsonNode* rootNode = json_parser_get_root(parser);
+                //JsonObject* rootObj = json_node_get_object(rootNode);
+                JsonObject* rootObj = jsonHelper.get_root_object();
+                auto states = json_object_get_array_member(rootObj, "states");
+                int statesLen = json_array_get_length(states);
+                for (int iState = 0; iState < statesLen; ++iState) {
+                    JsonArray* state = json_array_get_array_element(states, iState);
+                    auto flight = std::make_shared<OpenskyFlight>();
+                    flight->parse(state);
+                    flights.emplace_back(std::move(flight));
+                }
+                notifyAll(flights);
+            }
+            catch (const JsonException& ex) {
+                auto msg = Glib::ustring::sprintf("Unable to parse flight data %s", ex.what());
+                notifyAll(msg, 0);
+            }
+        }
+        else {
+            std::cout << "OpenskyFlights::notify"
+                      << " errror " << error
+                      << " status " << status
+                      << " no opensky req!" << std::endl;
+        }
     }
 
 }

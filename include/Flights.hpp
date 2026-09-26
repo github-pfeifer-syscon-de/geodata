@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <chrono>
+#include <vector>
 
 #include "Flight.hpp"
 #include "Spoon.hpp"
@@ -30,28 +31,33 @@ using PtrFlights = std::shared_ptr<Flights>;
 class FlightsConsumer
 {
 public:
-    virtual void update(std::list<PtrFlight> flights) = 0;
+    virtual void update(std::vector<PtrFlight> flights) = 0;
     virtual void notifyError(const Glib::ustring& error, int status) = 0;
 };
 
 class Flights
 {
 public:
-    Flights(FlightsConsumer* flightsConsumer);
+    Flights();
     explicit Flights(const Flights& other) = delete;
     virtual ~Flights() = default;
 
     virtual void query(GeoBounds& bounds) = 0;
     virtual std::string getServiceName() = 0;
     static std::vector<const char*> getServiceNames();
-    static std::shared_ptr<Flights> getService(const std::string& service, FlightsConsumer* flightsConsumer);
+    // this should probably be followed by addListener
+    static std::shared_ptr<Flights> getService(const std::string& service);
     static std::chrono::duration<gint64, std::micro> asDuration(Glib::TimeSpan& timeSpan);
     void setLastQuery(const Glib::DateTime& lastQuery);
     Glib::DateTime getLastQuery();
+    void addListener(FlightsConsumer* flightsConsumer);
+    void removeListener(FlightsConsumer* flightsConsumer);
 protected:
+    void notifyAll(std::vector<PtrFlight> flights);
+    void notifyAll(const Glib::ustring& error, int status);
     std::shared_ptr<SpoonSession> getSpoonSession();
 
-    FlightsConsumer* m_flightsConsumer;
     std::shared_ptr<SpoonSession> spoonSession;
     Glib::DateTime m_lastQuery;
+    std::list<FlightsConsumer*> m_flightConsumers;
 };

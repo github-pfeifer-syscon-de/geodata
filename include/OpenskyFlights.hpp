@@ -32,8 +32,6 @@ public:
 };
 
 // Ref https://openskynetwork.github.io/opensky-api/rest.html#all-state-vectors
-// icao info infos https://globe.adsbexchange.com/?icao=3c4317
-// callsign info https://www.flightaware.com/live/flight/FIN5YP/
 class OpenskyFlight
 : public Flight {
 public:
@@ -70,7 +68,7 @@ class OpenskyFlights
 : public Flights
 {
 public:
-    OpenskyFlights(FlightsConsumer* flightsConsumer);
+    OpenskyFlights();
     explicit OpenskyFlights(const OpenskyFlights& other) = delete;
     virtual ~OpenskyFlights() = default;
 

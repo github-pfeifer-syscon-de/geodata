@@ -26,14 +26,15 @@
 #include "Flights.hpp"
 
 class FlightTest
-: public Gio::Application, FlightsConsumer
+: public Gio::Application
+, public FlightsConsumer
 {
 public:
     FlightTest();
     explicit FlightTest(const FlightTest& other) = delete;
     virtual ~FlightTest() = default;
 
-    void update(std::list<PtrFlight> flights) override;
+    void update(std::vector<PtrFlight> flights) override;
     void notifyError(const Glib::ustring& error, int status) override;
 
     void on_activate() override;

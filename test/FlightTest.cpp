@@ -32,13 +32,14 @@ FlightTest::FlightTest()
 void
 FlightTest::start()
 {
-    m_opensky = Flights::getService(OpenskyFlights::SERVICE_NAME, this);
+    m_opensky = Flights::getService(OpenskyFlights::SERVICE_NAME);
+    m_opensky->addListener(this);
     GeoBounds bounds{ 8, 50, 9, 52, CoordRefSystem(CoordRefSystem::Value::CRS_84)};
     m_opensky->query(bounds);
 }
 
 void
-FlightTest::update(std::list<PtrFlight> flights)
+FlightTest::update(std::vector<PtrFlight> flights)
 {
     std::cout << "FlightTest::update size " << flights.size() << std::endl;
     for (PtrFlight flight : flights) {
