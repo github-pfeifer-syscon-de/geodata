@@ -50,7 +50,12 @@ public:
     static std::chrono::duration<gint64, std::micro> asDuration(Glib::TimeSpan& timeSpan);
     void setLastQuery(const Glib::DateTime& lastQuery);
     Glib::DateTime getLastQuery();
-    void addListener(FlightsConsumer* flightsConsumer);
+    /**
+     * add listener/consumer
+     * @param flightsConsumer
+     * @return true have been notified, false not yet initialized?
+     */
+    bool addListener(FlightsConsumer* flightsConsumer);
     void removeListener(FlightsConsumer* flightsConsumer);
 protected:
     void notifyAll(std::vector<PtrFlight> flights);

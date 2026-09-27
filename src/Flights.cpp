@@ -70,18 +70,20 @@ Flights::getLastQuery()
     return m_lastQuery;
 }
 
-void
+bool
 Flights::addListener(FlightsConsumer* flightsConsumer)
 {
     for (auto* consumer : m_flightConsumers) {
         if (consumer == flightsConsumer) {
-            return;
+            return false;
         }
     }
     m_flightConsumers.push_back(flightsConsumer);
     if (!m_lastFlights.empty()) {
         flightsConsumer->update(m_lastFlights); // let consumer know
+        return true;
     }
+    return false;
 }
 void
 Flights::removeListener(FlightsConsumer* flightsConsumer)
