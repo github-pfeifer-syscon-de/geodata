@@ -37,7 +37,7 @@ FlightTest::start()
     m_opensky->addListener(this);
     m_timer = Glib::signal_timeout().connect_seconds([&] {
         if (m_opensky->isUpdate()) {
-            GeoBounds bounds{ 8, 51, 9, 52, CoordRefSystem(CoordRefSystem::Value::CRS_84)};
+            GeoBounds bounds{ 8, 50, 10, 52, CoordRefSystem(CoordRefSystem::Value::CRS_84)};
             m_opensky->query(bounds);
         }
         else {
