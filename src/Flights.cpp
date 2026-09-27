@@ -52,16 +52,17 @@ Flights::getService(const std::string& service)
     return PtrFlights{};
 }
 
-std::chrono::duration<gint64, std::micro>
+std::chrono::seconds
 Flights::asDuration(Glib::TimeSpan& timeSpan)
 {
-    return std::chrono::duration<gint64, std::micro>(timeSpan);
+    auto us = std::chrono::duration<gint64, std::micro>(timeSpan);
+    return std::chrono::duration_cast<std::chrono::seconds>(us);
 }
 
 void
-Flights::setLastQuery(const Glib::DateTime& lastQuery)
+Flights::setLastQuery()
 {
-    m_lastQuery = lastQuery;
+    m_lastQuery = Glib::DateTime::create_now_local();
 }
 
 Glib::DateTime
@@ -69,6 +70,19 @@ Flights::getLastQuery()
 {
     return m_lastQuery;
 }
+
+bool Flights::isUpdate()
+{
+    auto dt = getLastQuery();
+    if (!dt) {
+        return true;
+    }
+    auto now = Glib::DateTime::create_now_local();
+    auto diff = now.difference(dt);
+    auto dur = asDuration(diff);
+    return dur >= getUpdateInterval();
+}
+
 
 bool
 Flights::addListener(FlightsConsumer* flightsConsumer)
@@ -97,6 +111,12 @@ Flights::removeListener(FlightsConsumer* flightsConsumer)
             ++iter;
         }
     }
+}
+
+std::chrono::seconds
+Flights::getUpdateInterval()
+{
+    return m_updateInterval;
 }
 
 void

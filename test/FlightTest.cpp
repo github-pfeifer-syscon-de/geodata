@@ -33,9 +33,18 @@ void
 FlightTest::start()
 {
     m_opensky = Flights::getService(OpenskyFlights::SERVICE_NAME);
+    m_opensky->setUpdateInterval(std::chrono::seconds(5));
     m_opensky->addListener(this);
-    GeoBounds bounds{ 8, 50, 9, 52, CoordRefSystem(CoordRefSystem::Value::CRS_84)};
-    m_opensky->query(bounds);
+    m_timer = Glib::signal_timeout().connect_seconds([&] {
+        if (m_opensky->isUpdate()) {
+            GeoBounds bounds{ 8, 51, 9, 52, CoordRefSystem(CoordRefSystem::Value::CRS_84)};
+            m_opensky->query(bounds);
+        }
+        else {
+            //std::cout << "Timer tick" << std::endl;
+        }
+        return true;
+    },1);
 }
 
 void
@@ -70,6 +79,9 @@ FlightTest::notifyError(const Glib::ustring& error, int status)
               << " status " << status << std::endl;
     m_error = error;
     m_status = status;
+    if (m_timer.connected()) {
+        m_timer.disconnect();
+    }
 }
 
 
@@ -81,11 +93,13 @@ FlightTest::on_activate()
     main->get_context()->signal_idle().connect_once(
             sigc::mem_fun(*this, &FlightTest::start));
     main->get_context()->signal_timeout().connect_seconds_once([&] {
-            main->quit();
-    }, 5);
+        if (m_timer.connected()) {
+            m_timer.disconnect();
+        }
+        main->quit();
+    }, 10);
     main->run();
 }
-
 
 int
 FlightTest::getResult()

@@ -61,7 +61,17 @@ OpenskyFlight::getString(JsonArray* state, guint idx, guint stateLen)
     return "";
 }
 
-
+bool
+OpenskyFlight::getBoolean(JsonArray* state, guint idx)
+{
+    // beware the glib-json get_boolean seems to care only about 0/1
+    auto cgrd = json_array_get_string_element(state, idx);
+    if (cgrd != nullptr) {
+        Glib::ustring sgrd = cgrd;
+        return sgrd.lowercase() == "true";
+    }
+    return false;
+}
 void
 OpenskyFlight::parse(JsonArray* state)
 {
@@ -85,15 +95,14 @@ OpenskyFlight::parse(JsonArray* state)
         setPosition(coord);
     }
     setBaroAltitude(getDouble(state, IDX_BARO_ALTITUDE, stateLen));
-    const auto ground = isValue(state, IDX_ON_GROUND, stateLen);
-    setOnGround(ground);
+    setOnGround(getBoolean(state, IDX_ON_GROUND));
     setVelocity(getDouble(state, IDX_VELOCITY, stateLen));
     setTrack(getDouble(state, IDX_TRACK, stateLen));
     setVerticalRate(getDouble(state, IDX_VERTICAL_RATE, stateLen));
     setGeoAltitude(getDouble(state, IDX_GEO_ALTITUDE, stateLen));
     setSquake(getString(state, IDX_SQUAKE, stateLen));
     if (isValue(state, IDX_SPI, stateLen)) {
-        setSpecialPurposeIndicator(json_array_get_boolean_element(state, IDX_SPI));
+        setSpecialPurposeIndicator(getBoolean(state, IDX_SPI));
     }
     if (isValue(state, IDX_POSITION_SRC, stateLen)) {
         setPositonSource(static_cast<int>(json_array_get_int_element(state, IDX_POSITION_SRC)));
@@ -113,8 +122,7 @@ OpenskyFlights::OpenskyFlights()
 void
 OpenskyFlights::query(GeoBounds& bounds)
 {
-    auto now =Glib::DateTime::create_now_local();
-    setLastQuery(now);
+    setLastQuery();
     const auto& westSouth = bounds.getWestSouth();
     const auto& eastNorth = bounds.getEastNorth();
     auto req = std::make_shared<OpenskyRequest>();

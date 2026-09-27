@@ -45,4 +45,5 @@ private:
     Glib::ustring m_error;
     int m_status{};
     std::shared_ptr<Flights> m_opensky;
+    sigc::connection m_timer;
 };

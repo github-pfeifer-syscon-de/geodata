@@ -62,6 +62,8 @@ protected:
     bool isValue(JsonArray* state, guint idx, guint stateLen);
     double getDouble(JsonArray* state, guint idx, guint stateLen);
     std::string getString(JsonArray* state, guint idx, guint stateLen);
+    bool getBoolean(JsonArray* state, guint idx);
+
 };
 
 class OpenskyFlights

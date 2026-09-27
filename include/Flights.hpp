@@ -47,9 +47,10 @@ public:
     static std::vector<const char*> getServiceNames();
     // this should probably be followed by addListener
     static std::shared_ptr<Flights> getService(const std::string& service);
-    static std::chrono::duration<gint64, std::micro> asDuration(Glib::TimeSpan& timeSpan);
-    void setLastQuery(const Glib::DateTime& lastQuery);
+    static std::chrono::seconds asDuration(Glib::TimeSpan& timeSpan);
+    void setLastQuery();
     Glib::DateTime getLastQuery();
+    bool isUpdate();
     /**
      * add listener/consumer
      * @param flightsConsumer
@@ -57,6 +58,11 @@ public:
      */
     bool addListener(FlightsConsumer* flightsConsumer);
     void removeListener(FlightsConsumer* flightsConsumer);
+    std::chrono::seconds getUpdateInterval();
+    template<typename Rep, typename Period>
+    void setUpdateInterval(std::chrono::duration<Rep, Period> interval) {
+        m_updateInterval = std::chrono::duration_cast<std::chrono::seconds>(interval);
+    }
 protected:
     void notifyAll(std::vector<PtrFlight> flights);
     void notifyAll(const Glib::ustring& error, int status);
@@ -66,4 +72,5 @@ protected:
     Glib::DateTime m_lastQuery;
     std::list<FlightsConsumer*> m_flightConsumers;
     std::vector<PtrFlight> m_lastFlights;
+    std::chrono::seconds m_updateInterval{60};
 };
