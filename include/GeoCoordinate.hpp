@@ -145,6 +145,9 @@ public:
     auto operator+(const GeoCoordinate& add) const->GeoCoordinate {
         return GeoCoordinate{m_longitude + add.m_longitude, m_latitude + add.m_latitude, m_coordRef};
     }
+    auto distance(const GeoCoordinate& sub) const->double {
+        return std::hypot( m_longitude - sub.m_longitude, m_latitude - sub.m_latitude);
+    }
     std::string toString() {
         return std::format("lon {}, lat {}", m_longitude, m_latitude);
     }
