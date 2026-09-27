@@ -72,8 +72,9 @@ public:
     Glib::ustring identifier() const;
     static CoordRefSystem parse(const Glib::ustring& ref);
     bool is_latitude_first() const;
-    static constexpr auto EPSG3857_MIN{-M_PI * 6378137.0};
-    static constexpr auto EPSG3857_MAX{M_PI * 6378137.0};
+    static constexpr auto EARTH_RADI_WGS84_M{6378137.0};
+    static constexpr auto EPSG3857_MIN{-M_PI * EARTH_RADI_WGS84_M};
+    static constexpr auto EPSG3857_MAX{M_PI * EARTH_RADI_WGS84_M};
     friend std::ostream& operator<<(std::ostream& os, const CoordRefSystem& myRef) {
         os << myRef.identifier();
         return os;

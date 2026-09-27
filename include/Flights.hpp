@@ -60,4 +60,5 @@ protected:
     std::shared_ptr<SpoonSession> spoonSession;
     Glib::DateTime m_lastQuery;
     std::list<FlightsConsumer*> m_flightConsumers;
+    std::vector<PtrFlight> m_lastFlights;
 };

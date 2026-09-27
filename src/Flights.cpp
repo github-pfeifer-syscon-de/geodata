@@ -79,6 +79,9 @@ Flights::addListener(FlightsConsumer* flightsConsumer)
         }
     }
     m_flightConsumers.push_back(flightsConsumer);
+    if (!m_lastFlights.empty()) {
+        flightsConsumer->update(m_lastFlights); // let consumer know
+    }
 }
 void
 Flights::removeListener(FlightsConsumer* flightsConsumer)
@@ -97,6 +100,7 @@ Flights::removeListener(FlightsConsumer* flightsConsumer)
 void
 Flights::notifyAll(std::vector<PtrFlight> flights)
 {
+    m_lastFlights = flights;  // remember last state
     if (m_flightConsumers.empty()) {
         std::cout << "Flights::notifyAll"
                   << " flights " << flights.size()
@@ -110,6 +114,7 @@ Flights::notifyAll(std::vector<PtrFlight> flights)
 void
 Flights::notifyAll(const Glib::ustring& error, int status)
 {
+    m_lastFlights.clear();  // invalidate these
     if (m_flightConsumers.empty()) {
         std::cout << "Flights::notifyAll"
                   << " errror " << error
