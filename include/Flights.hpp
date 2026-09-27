@@ -31,7 +31,7 @@ using PtrFlights = std::shared_ptr<Flights>;
 class FlightsConsumer
 {
 public:
-    virtual void update(std::vector<PtrFlight> flights) = 0;
+    virtual void update(const std::vector<PtrFlight>& flights) = 0;
     virtual void notifyError(const Glib::ustring& error, int status) = 0;
 };
 
