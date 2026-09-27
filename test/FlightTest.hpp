@@ -34,7 +34,7 @@ public:
     explicit FlightTest(const FlightTest& other) = delete;
     virtual ~FlightTest() = default;
 
-    void update(std::vector<PtrFlight> flights) override;
+    void update(const std::vector<PtrFlight>& flights) override;
     void notifyError(const Glib::ustring& error, int status) override;
 
     void on_activate() override;

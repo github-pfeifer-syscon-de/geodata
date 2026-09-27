@@ -39,7 +39,7 @@ FlightTest::start()
 }
 
 void
-FlightTest::update(std::vector<PtrFlight> flights)
+FlightTest::update(const std::vector<PtrFlight>& flights)
 {
     std::cout << "FlightTest::update size " << flights.size() << std::endl;
     for (PtrFlight flight : flights) {
