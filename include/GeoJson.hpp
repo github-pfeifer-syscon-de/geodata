@@ -48,6 +48,8 @@ public:
     virtual void addShape(JsonArray* shape) = 0;
     virtual void endShape() = 0;
     virtual void addCoord(JsonArray* coord, bool last) = 0;
+    virtual void addPoint(JsonArray* coord) = 0;
+    virtual void addProperties(JsonObject* properties) = 0;
 };
 
 class GeoJsonVectorHandler
@@ -68,6 +70,8 @@ public:
     void addShape(JsonArray* shape) override;
     void endShape() override;
     void addCoord(JsonArray* coord, bool last) override;
+    void addPoint(JsonArray* coord) override;
+    virtual void addProperties(JsonObject* properties) override;
     GeoPath& getPath();
     int getPointsLimit();
     void setPointsLimit(int points);
@@ -93,6 +97,7 @@ public:
 protected:
     void read_multi_polygon(JsonHelper& parser, JsonArray* coord, GeoJsonHandler* handler);
     void read_polygon(JsonHelper& parser, JsonArray* coord, GeoJsonHandler* handler);
+    void read_point(JsonHelper& parser, JsonArray* coords, GeoJsonHandler* handler);
 
 private:
 };

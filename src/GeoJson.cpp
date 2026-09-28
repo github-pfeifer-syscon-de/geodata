@@ -70,7 +70,18 @@ GeoJsonVectorHandler::addCoord(JsonArray* coord, bool last)
         // keep as warning ?
         std::cout << "Expected coords 2 got " << coordLen << std::endl;
     }
+}
 
+void
+GeoJsonVectorHandler::addPoint(JsonArray* coord)
+{
+    std::cout << "GeoJsonVectorHandler::addPoint is unexpected" << std::endl;
+}
+
+void
+GeoJsonVectorHandler::addProperties(JsonObject* properties)
+{
+    std::cout << "GeoJsonVectorHandler::addProperties unhandled." << std::endl;
 }
 
 GeoPath&
@@ -82,6 +93,14 @@ GeoJsonVectorHandler::getPath()
     return m_path;
 }
 
+void
+GeoJson::read_point(JsonHelper& parser, JsonArray* coords, GeoJsonHandler* handler)
+{
+    handler->addPoint(coords);
+#ifdef GEO_DEBUG
+    std::cout << "Found point " << std::endl;
+#endif
+}
 
 void
 GeoJson::read_polygon(JsonHelper& parser, JsonArray* poly, GeoJsonHandler* handler)
@@ -146,6 +165,9 @@ GeoJson::read(const Glib::ustring& file, GeoJsonHandler* handler)
         else if (strcmp("Polygon", type) == 0) {
             read_polygon(parser, coord, handler);
         }
+        else if (strcmp("Point", type) == 0) {
+            read_point(parser, coord, handler);
+        }
         else {
             std::cout << "The file " << file << " contains an unexpected type " << type << std::endl;
         }
@@ -153,6 +175,10 @@ GeoJson::read(const Glib::ustring& file, GeoJsonHandler* handler)
         std::cout << "Coords created " << m_count << std::endl;
         #endif
         handler->endGeometry();
+        if (static_cast<bool>(json_object_has_member(feat, "properties"))) {
+            JsonObject* prop = parser.get_object(feat, "properties");
+            handler->addProperties(prop);
+        }
         handler->endFeature();
     }
 }

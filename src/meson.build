@@ -2,7 +2,6 @@
 sources = files(
       'Spoon.cpp'
     , 'MapProjection.cpp'
-    , 'GeoJsonSimplifyHandler.cpp'
     , 'GeoJson.cpp'
     , 'BoundsDisplay.cpp'
     , 'WeatherConfigGrid.cpp'

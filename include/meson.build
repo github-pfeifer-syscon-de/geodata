@@ -12,7 +12,6 @@ project_headers = [
     , 'WebMapService.hpp'
     , 'GeoCoordinate.hpp'
     , 'MapProjection.hpp'
-    , 'GeoJsonSimplifyHandler.hpp'
     , 'GeoJson.hpp'
     , 'BoundsDisplay.hpp'
     , 'WeatherConfigGrid.hpp'
