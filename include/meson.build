@@ -1,6 +1,6 @@
 
 # make this config persistent, to share infos at runtime -> makes in header reference possible
-configure_file ( output : meson.project_name() + '_config.h'
+conf_file = configure_file( output : meson.project_name() + '_config.h'
                , configuration : conf
                , install : true
                , install_dir : 'include/' + meson.project_name())
@@ -13,6 +13,7 @@ project_headers = [
     , 'GeoCoordinate.hpp'
     , 'MapProjection.hpp'
     , 'GeoJson.hpp'
+    , 'GeoJson2.hpp'
     , 'BoundsDisplay.hpp'
     , 'WeatherConfigGrid.hpp'
     , 'WeatherConfig.hpp'
