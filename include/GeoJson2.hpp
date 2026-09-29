@@ -200,7 +200,7 @@ public:
     explicit Segment(const Segment& other) = delete;
     virtual ~Segment() = default;
 
-    std::vector<GeoCoordinate>& getCoordinates(){
+    std::vector<GeoCoordinate> getCoordinates(){
         return m_coords;
     }
 protected:
@@ -217,7 +217,7 @@ public:
     explicit Polygon(const Polygon& other) = delete;
     virtual ~Polygon() = default;
 
-    std::vector<PtrSegment>& getSegments() {
+    std::vector<PtrSegment> getSegments() {
         return m_segments;
     }
 protected:
@@ -234,7 +234,7 @@ public:
     explicit MultiPolygon(const MultiPolygon& other) = delete;
     virtual ~MultiPolygon() = default;
 
-    std::vector<PtrPolygon>& getPolygons() {
+    std::vector<PtrPolygon> getPolygons() {
         return m_polygons;
     }
 protected:
