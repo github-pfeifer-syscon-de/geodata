@@ -17,13 +17,12 @@
  */
 #pragma once
 
-#include <GeoCoordinate.hpp>
 #include <JsonHelper.hpp>
 #include <StringUtils.hpp>
 #include <iostream>
-#include <vector>
 #include <format>
-#include <memory>
+
+#include "GenericGeo.hpp"
 
 // this is intended to be a storing reader
 //   for just conversions see GeoJson
@@ -46,212 +45,85 @@ private:
     std::string swhat;
 };
 
-
-enum class ValueType {
-     Null
-    ,Integer
-    ,Double
-    ,Boolean
-    ,String
-    ,
-};
-
-class PropValueBase
+class JsonGeometry
 {
 public:
-    PropValueBase(ValueType type)
-    : m_type{type}
-    {
-    }
-    explicit PropValueBase(const PropValueBase& value) = default;
-    virtual ~PropValueBase() = default;
-    ValueType getValueType() {
-        return m_type;
-    }
-protected:
-    ValueType m_type;
-};
+    JsonGeometry() = default;
+    explicit JsonGeometry(const JsonGeometry& other) = delete;
+    virtual ~JsonGeometry() = default;
 
-template <typename T>
-class PropValue
-: public PropValueBase
-{
-public:
-    PropValue(const T& value, ValueType type)
-    : PropValueBase{type}
-    , m_value{value}
-    {
-    }
-    explicit PropValue(const PropValue& value) = default;
-    virtual ~PropValue() = default;
-    T get() {
-        return m_value;
-    }
-protected:
-    T m_value;
-};
-
-class PropValueInt
-: public PropValue<int64_t>
-{
-public:
-    explicit PropValueInt(int64_t value)
-    : PropValue{value, ValueType::Integer}
-    {
-    }
-    explicit PropValueInt(const PropValueInt& value) = default;
-    virtual ~PropValueInt() = default;
-};
-
-class PropValueDouble
-: public PropValue<double>
-{
-public:
-    PropValueDouble(double value)
-    : PropValue{value, ValueType::Double}
-    {
-    }
-    explicit PropValueDouble(const PropValueDouble& value) = default;
-    virtual ~PropValueDouble() = default;
-};
-
-class PropValueBool
-: public PropValue<bool>
-{
-public:
-    PropValueBool(bool value)
-    : PropValue{value, ValueType::Boolean}
-    {
-    }
-    explicit PropValueBool(const PropValueBool& value) = default;
-    virtual ~PropValueBool() = default;
-};
-
-class PropValueString
-: public PropValue<Glib::ustring>
-{
-public:
-    PropValueString(const Glib::ustring& value)
-    : PropValue{value, ValueType::String}
-    {
-    }
-    explicit PropValueString(const PropValueString& value) = default;
-    virtual ~PropValueString() = default;
-};
-
-class Properties
-{
-public:
-    Properties(JsonObject* propObj, const std::string& ctx);
-    explicit Properties(const Properties& other) = delete;
-    virtual ~Properties() = default;
-
-    ValueType getType(const Glib::ustring& key);
-    int64_t getInteger(const Glib::ustring& key);
-    double getDouble(const Glib::ustring& key);
-    bool getBool(const Glib::ustring& key);
-    Glib::ustring getString(const Glib::ustring& key);
-
-protected:
-    std::map<Glib::ustring, std::unique_ptr<PropValueBase>> m_properties;
-};
-
-using PtrProperties = std::shared_ptr<Properties>;
-
-class Geometry
-{
-public:
-    Geometry() = default;
-    explicit Geometry(const Geometry& other) = delete;
-    virtual ~Geometry() = default;
-protected:
     GeoCoordinate readCoord(JsonArray* coord, const std::string& ctx);
 
 };
 
-using PtrGeometry = std::shared_ptr<Geometry>;
-
-
-class Point
-: public Geometry
+class JsonPoint
+: public Point
+, public JsonGeometry
 {
 public:
-    Point(JsonArray* coord, const std::string& ctx) {
-        auto pctx = ctx + " point ";
-        m_coord = readCoord(coord, ctx);
-    }
-    explicit Point(const Point& other) = delete;
-    virtual ~Point() = default;
+    JsonPoint(JsonArray* coord, const std::string& ctx);
+    explicit JsonPoint(const JsonPoint& other) = delete;
+    virtual ~JsonPoint() = default;
 
-    GeoCoordinate getCoordinate() const {
-        return m_coord;
-    }
-protected:
-    GeoCoordinate m_coord;
 };
 
-using PtrPoint = std::shared_ptr<Point>;
-
-class Segment
-: public Geometry
+class JsonSegment
+: public Segment
+, public JsonGeometry
 {
 public:
-    Segment(JsonArray* segm, const std::string& ctx);
-    explicit Segment(const Segment& other) = delete;
-    virtual ~Segment() = default;
+    JsonSegment(JsonArray* segm, const std::string& ctx);
+    explicit JsonSegment(const JsonSegment& other) = delete;
+    virtual ~JsonSegment() = default;
 
-    std::vector<GeoCoordinate> getCoordinates(){
-        return m_coords;
-    }
-protected:
-    std::vector<GeoCoordinate> m_coords;
 };
 
-using PtrSegment = std::shared_ptr<Segment>;
-
-class Polygon
-: public Geometry
+class JsonPolygon
+: public Polygon
+, public JsonGeometry
 {
 public:
-    Polygon(JsonArray* poly, const std::string& ctx);
-    explicit Polygon(const Polygon& other) = delete;
-    virtual ~Polygon() = default;
+    JsonPolygon(JsonArray* segm, const std::string& ctx);
+    explicit JsonPolygon(const JsonPolygon& other) = delete;
+    virtual ~JsonPolygon() = default;
 
-    std::vector<PtrSegment> getSegments() {
-        return m_segments;
-    }
-protected:
-    std::vector<PtrSegment> m_segments;
+
+};
+class JsonMultiPolygon
+: public MultiPolygon
+, public JsonGeometry
+{
+public:
+    JsonMultiPolygon(JsonArray* multi, const std::string& ctx);
+    explicit JsonMultiPolygon(const JsonMultiPolygon& other) = delete;
+    virtual ~JsonMultiPolygon() = default;
+
+    void read();
+
 };
 
-using PtrPolygon = std::shared_ptr<Polygon>;
-
-class MultiPolygon
-: public Geometry
+class JsonProperties
+: public Properties
 {
 public:
-    MultiPolygon(JsonArray* coord, const std::string& ctx);
-    explicit MultiPolygon(const MultiPolygon& other) = delete;
-    virtual ~MultiPolygon() = default;
-
-    std::vector<PtrPolygon> getPolygons() {
-        return m_polygons;
-    }
-protected:
-    std::vector<PtrPolygon> m_polygons;
+    JsonProperties(JsonObject* propObj, const std::string& ctx);
 };
 
-class Feature
+
+class JsonFeature
+: public Feature
 {
 public:
-    Feature(JsonObject* featObj, const std::string& ctx);
-    explicit Feature(const Feature& other) = delete;
-    virtual ~Feature() = default;
+    JsonFeature(JsonObject* featObj, const std::string& ctx);
+    explicit JsonFeature(const JsonFeature& other) = delete;
+    virtual ~JsonFeature() = default;
 
-    PtrProperties getProperties() {
+    PtrProperties getProperties() override
+    {
         return m_properties;
     }
-    PtrGeometry getGeometry() {
+    PtrGeometry getGeometry() override
+    {
         return m_geometry;
     }
 protected:
@@ -261,7 +133,7 @@ protected:
     PtrProperties m_properties;
 };
 
-using PtrFeature = std::shared_ptr<Feature>;
+using PtrJsonFeature = std::shared_ptr<JsonFeature>;
 
 class GeoJson2 {
 public:

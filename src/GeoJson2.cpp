@@ -21,7 +21,8 @@
 namespace psc::geo
 {
 
-Properties::Properties(JsonObject* propObj, const std::string& ctx)
+JsonProperties::JsonProperties(JsonObject* propObj, const std::string& ctx)
+: Properties()
 {
     GList* values = json_object_get_members(propObj);
     for (GList* elem = values; elem; elem = elem->next) {
@@ -136,7 +137,7 @@ Properties::getString(const Glib::ustring& key)
 }
 
 GeoCoordinate
-Geometry::readCoord(JsonArray* coord, const std::string& ctx)
+JsonGeometry::readCoord(JsonArray* coord, const std::string& ctx)
 {
     auto cnt = json_array_get_length(coord);
     if (cnt == 2) {
@@ -148,7 +149,16 @@ Geometry::readCoord(JsonArray* coord, const std::string& ctx)
     throw Json2Exception(msg);
 }
 
-Segment::Segment(JsonArray* segm, const std::string& ctx) {
+JsonPoint::JsonPoint(JsonArray* coord, const std::string& ctx)
+: Point()
+{
+    auto pctx = ctx + " point ";
+    m_coord = readCoord(coord, ctx);
+}
+
+JsonSegment::JsonSegment(JsonArray* segm, const std::string& ctx)
+: Segment()
+{
     auto cntIn = json_array_get_length(segm);
     m_coords.reserve(cntIn);
     for (uint32_t j = 0; j < cntIn; ++j) {
@@ -157,32 +167,34 @@ Segment::Segment(JsonArray* segm, const std::string& ctx) {
     }
 }
 
-Polygon::Polygon(JsonArray* poly, const std::string& ctx) {
+JsonPolygon::JsonPolygon(JsonArray* poly, const std::string& ctx) {
     auto pctx = ctx + " poly ";
     auto cntOut = json_array_get_length(poly);
     m_segments.reserve(cntOut);
     for (uint32_t i = 0; i < cntOut; ++i) {
         auto poctx = pctx + std::to_string(i);
         JsonArray* polyOut = json_array_get_array_element(poly, i);
-        auto segm = std::make_shared<Segment>(polyOut, poctx);
+        auto segm = std::make_shared<JsonSegment>(polyOut, poctx);
         m_segments.emplace_back(std::move(segm));
     }
 }
 
-MultiPolygon::MultiPolygon(JsonArray* coord, const std::string& ctx)
+JsonMultiPolygon::JsonMultiPolygon(JsonArray* multi, const std::string& ctx)
+: MultiPolygon()
 {
     auto pctx = ctx + " multi poly ";
-    auto cntOut = json_array_get_length(coord);
+    auto cntOut = json_array_get_length(multi);
     m_polygons.reserve(cntOut);
     for (uint32_t i = 0; i < cntOut; ++i) {
         auto poctx = pctx + std::to_string(i);
-        JsonArray* polyOut = json_array_get_array_element(coord, i);
-        auto poly = std::make_shared<Polygon>(polyOut, poctx);
+        JsonArray* polyOut = json_array_get_array_element(multi, i);
+        auto poly = std::make_shared<JsonPolygon>(polyOut, poctx);
         m_polygons.emplace_back(std::move(poly));
     }
 }
 
-Feature::Feature(JsonObject* featObj, const std::string& ctx)
+JsonFeature::JsonFeature(JsonObject* featObj, const std::string& ctx)
+: Feature()
 {
     if (static_cast<bool>(json_object_has_member(featObj, "type"))) {
         Glib::ustring type = json_object_get_string_member(featObj, "type");
@@ -197,7 +209,7 @@ Feature::Feature(JsonObject* featObj, const std::string& ctx)
             }
             if (static_cast<bool>(json_object_has_member(featObj, "properties"))) {
                 auto properties = json_object_get_object_member(featObj, "properties");
-                m_properties = std::make_shared<Properties>(properties, ctx);
+                m_properties = std::make_shared<JsonProperties>(properties, ctx);
             }
             else {  // this should  probably not be an error
                 std::cout << "GeoJson2 " << ctx << " expected properties not found" << std::endl;
@@ -215,20 +227,23 @@ Feature::Feature(JsonObject* featObj, const std::string& ctx)
 }
 
 PtrGeometry
-Feature::readGeometry(JsonObject* geometry, const std::string& ctx)
+JsonFeature::readGeometry(JsonObject* geometry, const std::string& ctx)
 {
     if (static_cast<bool>(json_object_has_member(geometry, "type"))) {
         if (static_cast<bool>(json_object_has_member(geometry, "coordinates"))) {
             auto coords = json_object_get_array_member(geometry, "coordinates");
             Glib::ustring geomType = json_object_get_string_member(geometry, "type");
             if (geomType == "Point") {
-                return std::make_shared<Point>(coords, ctx);
+                auto point = std::make_shared<JsonPoint>(coords, ctx);
+                return point;
             }
             if (geomType == "Polygon") {
-                return std::make_shared<Polygon>(coords, ctx);
+                auto poly = std::make_shared<JsonPolygon>(coords, ctx);
+                return poly;
             }
             if (geomType == "MultiPolygon") {
-                return std::make_shared<MultiPolygon>(coords, ctx);
+                auto multiPoly = std::make_shared<JsonMultiPolygon>(coords, ctx);
+                return multiPoly;
             }
             auto msg = std::format( "GeoJson2 {} geometry type {} unknown",  ctx,  geomType);
             throw Json2Exception(msg);
@@ -254,7 +269,7 @@ GeoJson2::read(JsonHelper& helper)
                 for (uint32_t i = 0; i < featCnt; i++) {
                     auto featElem = json_array_get_object_element(featArray, i);
                     auto ctx = std::format("FeatureCollection[{}]", i);
-                    auto feat = std::make_shared<Feature>(featElem, ctx);
+                    auto feat = std::make_shared<JsonFeature>(featElem, ctx);
                     features.emplace_back(std::move(feat));
                 }
             }

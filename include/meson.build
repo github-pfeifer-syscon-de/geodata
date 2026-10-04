@@ -21,6 +21,8 @@ project_headers = [
     , 'Flight.hpp'
     , 'Flights.hpp'
     , 'OpenskyFlights.hpp'
+    , 'GenericGeo.hpp'
+    , 'GeoKlm.hpp'
 ]
 # Make this library usable from the system's
 # package manager.

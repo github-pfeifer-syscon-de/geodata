@@ -5,11 +5,11 @@ project('geodata', 'c', 'cpp'
                        , 'warning_level=3']
     , license : 'GPL-3.0'
     , meson_version: '>= 1.7.0'
-    , version: '0.2.4')
+    , version: '0.2.5')
 project_description = 'Common webMap (WMS) and flight infos'
 
 thread_deps     = dependency('threads')
-genericimg_deps = dependency('genericimg', version: '>= 0.4.9')
+genericimg_deps = dependency('genericimg', version: '>= 0.4.10')
 genericglm_deps = dependency('genericglm', version: '>= 0.3.1')
 libsoup3_deps    = dependency('libsoup-3.0')
 

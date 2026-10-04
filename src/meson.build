@@ -8,6 +8,8 @@ sources = files(
     , 'WeatherConfigGrid.cpp'
     , 'WeatherConfig.cpp'
     , 'WeatherDialog.cpp'
+    , 'GenericGeo.cpp'
+    , 'GeoKlm.cpp'
 )
 weather_sources = files(
     'Weather.cpp'

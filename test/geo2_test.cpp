@@ -22,6 +22,7 @@
 #include <iterator>
 
 #include "GeoJson2.hpp"
+#include "GeoKlm.hpp"
 
 static std::string
 indent_n(uint32_t indent)
@@ -63,7 +64,7 @@ printGeo(std::shared_ptr<psc::geo::Geometry> geom, uint32_t indent)
 }
 
 static bool
-readTest(const std::string& geoJsonFile)
+jsonReadTest(const std::string& geoJsonFile)
 {
     JsonHelper jsonHelper;
     jsonHelper.load_from_file(geoJsonFile);
@@ -85,14 +86,33 @@ readTest(const std::string& geoJsonFile)
 }
 
 
+static bool
+kmlReadTest(const std::string& kmlFile)
+{
+    psc::geo::GeoKlm geoKlm;
+    geoKlm.read(kmlFile);
+
+    return true;
+}
+
+
 int
 main(int argc, char** argv) {
-    setlocale(LC_ALL, "");      // use locale formating
+    std::setlocale(LC_ALL, "");      // use locale formating
     Glib::init();
+    Gio::init();
     if (argc >= 2) {
         for (int32_t i = 1; i < argc; i++) {
-            if (!readTest(argv[i])) {
-                return 1;
+            std::string name{argv[i]};
+            if (name.find(".json") != name.npos) {
+                if (!jsonReadTest(name)) {
+                    return 1;
+                }
+            }
+            else {
+                if (!kmlReadTest(name)) {
+                    return 1;
+                }
             }
         }
     }
