@@ -171,6 +171,8 @@ public:
     GeoBounds convert(CoordRefSystem to) const;
     GeoCoordinate& getWestSouth();
     GeoCoordinate& getEastNorth();
+    void setWestSouth(GeoCoordinate& min);
+    void setEastNorth(GeoCoordinate& max);
     // in inverse direction -> usable to get effective bounds after update
     void setLimits(CoordRefSystem coordRef = CoordRefSystem::CRS_84);
     void update(GeoCoordinate& coord);

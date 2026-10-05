@@ -288,6 +288,17 @@ GeoBounds::getEastNorth()
     return m_eastNorth;
 }
 
+void
+GeoBounds::setWestSouth(GeoCoordinate& min)
+{
+    m_westSouth = min;
+}
+void
+GeoBounds::setEastNorth(GeoCoordinate& max)
+{
+    m_eastNorth = max;
+}
+
 Glib::ustring
 GeoBounds::printValue(char separator) const
 {
