@@ -142,6 +142,8 @@ public:
     Geometry() = default;
     explicit Geometry(const Geometry& other) = delete;
     virtual ~Geometry() = default;
+
+    virtual void updateBounds(GeoBounds& bounds) = 0;
 protected:
 
 };
@@ -160,6 +162,10 @@ public:
     GeoCoordinate getCoordinate() const {
         return m_coord;
     }
+    void updateBounds(GeoBounds& bounds) override {
+        bounds.update(m_coord);
+    }
+
 protected:
     GeoCoordinate m_coord;
 };
@@ -177,6 +183,12 @@ public:
     std::vector<GeoCoordinate> getCoordinates(){
         return m_coords;
     }
+    void updateBounds(GeoBounds& bounds) override {
+        for (auto& coord : m_coords) {
+            bounds.update(coord);
+        }
+    }
+
 protected:
     std::vector<GeoCoordinate> m_coords;
 };
@@ -194,6 +206,12 @@ public:
     std::vector<PtrSegment> getSegments() {
         return m_segments;
     }
+    void updateBounds(GeoBounds& bounds) override {
+        for (auto& segm : m_segments) {
+            segm->updateBounds(bounds);
+        }
+    }
+
 protected:
     std::vector<PtrSegment> m_segments;
 };
@@ -211,6 +229,12 @@ public:
     std::vector<PtrPolygon> getPolygons() {
         return m_polygons;
     }
+    void updateBounds(GeoBounds& bounds) override {
+        for (auto& poly : m_polygons) {
+            poly->updateBounds(bounds);
+        }
+    }
+
 protected:
     std::vector<PtrPolygon> m_polygons;
 };

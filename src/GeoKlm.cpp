@@ -68,9 +68,6 @@ GeoKlm::readCompress(const Glib::RefPtr<Gio::FileInputStream>& fileStream
     context.end_parse();
 }
 
-//
-// example:
-// /home/rpf/build/deutschlandGeoJSON/germany-adm2.kml
 void
 GeoKlm::readNativ(const Glib::RefPtr<Gio::FileInputStream>& fileStream
     , Glib::Markup::ParseContext& context)
@@ -91,7 +88,8 @@ GeoKlm::readNativ(const Glib::RefPtr<Gio::FileInputStream>& fileStream
             break;
         }
         const char* start = reinterpret_cast<const char*>(bufIn->get_data());
-        const char* end =  start + read;
+        auto end = start;
+        std::advance(end, read);
         context.parse(start, end);
     }
     context.end_parse();
@@ -107,8 +105,7 @@ GeoKlm::read(const std::string& filePath)
         auto fileStream = file->read();
         if (StringUtils::endsWith(filePath, ".kmz")) {
             //readCompress(fileStream, context);
-            auto msg = "Reading for .kmz is not implemented...";
-            throw std::runtime_error(msg);
+            throw std::runtime_error("Reading for .kmz is not implemented...");
         }
         else {
             readNativ(fileStream, context);
@@ -121,7 +118,7 @@ GeoKlm::read(const std::string& filePath)
 }
 
 
-PtrKlmSegment
+PtrKlmGeometry
 GeoKlm::parseCoords(const Glib::ustring& text)
 {
     std::vector<GeoCoordinate> coords;
@@ -165,10 +162,18 @@ GeoKlm::parseCoords(const Glib::ustring& text)
         //          << " from " << m_average_coord_encode_length << std::endl;
         m_average_coord_encode_length = static_cast<int32_t>(static_cast<double>(effectiveRatio) * (1.0 - PESSIMISTIC_SIZE_RATIO));
     }
-    auto klmSeg = std::make_shared<KlmSegment>();
-    std::cout << "Adding coords " << coords.size() << std::endl;
-    klmSeg->moveCoords(coords);
-    return klmSeg;
+    if (coords.size() == 1) {
+        auto klmPnt = std::make_shared<KlmPoint>();
+        std::cout << "Adding point" << std::endl;
+        klmPnt->moveCoords(coords);
+        return klmPnt;
+    }
+    else {
+        auto klmSeg = std::make_shared<KlmSegment>();
+        std::cout << "Adding coords" << coords.size() << std::endl;
+        klmSeg->moveCoords(coords);
+        return klmSeg;
+    }
 }
 
 
@@ -211,6 +216,10 @@ KXMLParser::on_start_element(Glib::Markup::ParseContext& context,
     }
     else if (element_name == "Polygon") {
         auto polyGeom = std::make_shared<KlmPolygon>();
+        m_placemark->addGeometry(polyGeom);
+    }
+    else if (element_name == "Point") {
+        auto polyGeom = std::make_shared<KlmPoint>();
         m_placemark->addGeometry(polyGeom);
     }
     else if (element_name == "coordinates") {
@@ -277,9 +286,7 @@ KXMLParser::on_text(Glib::Markup::ParseContext& context,
         break;
     case TextContext::Coordinates: {
             auto geom = m_geoKlm->parseCoords(text);
-            if (m_placemark) {
-                m_placemark->addGeometry(geom);
-            }
+            m_placemark->addGeometry(geom);
         }
         break;
     default:

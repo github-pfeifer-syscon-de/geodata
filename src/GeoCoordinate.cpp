@@ -242,6 +242,7 @@ GeoCoordinate::getLinearLongitude() const
 }
 
 
+
 GeoBounds::GeoBounds(double westLon, double southLat, double eastLon, double northLat, CoordRefSystem coordRefSys)
 : m_westSouth{westLon, southLat, coordRefSys}
 , m_eastNorth{eastLon, northLat, coordRefSys}
@@ -257,6 +258,20 @@ GeoBounds::GeoBounds(const GeoCoordinate& westSouth, const GeoCoordinate& eastNo
                   << " westSouth"  << westSouth.getCoordRefSystem().identifier()
                   << " eastNorth " << eastNorth.getCoordRefSystem().identifier()
                   << std::endl;
+    }
+}
+
+void
+GeoBounds::setLimits(CoordRefSystem coordRef)
+{
+    if (coordRef == CoordRefSystem::EPSG_3857) {    // set directly as values might not be "computable" by methods below
+        m_westSouth = GeoCoordinate(CoordRefSystem::EPSG3857_MAX, CoordRefSystem::EPSG3857_MAX, coordRef);
+        m_eastNorth = GeoCoordinate(CoordRefSystem::EPSG3857_MIN, CoordRefSystem::EPSG3857_MIN, coordRef);
+
+    }
+    else {
+        m_westSouth = GeoCoordinate(coordRef.fromLinearLat(1.0), coordRef.fromLinearLat(1.0), coordRef);
+        m_eastNorth = GeoCoordinate(coordRef.fromLinearLat(-1.0), coordRef.fromLinearLat(-1.0), coordRef);
     }
 }
 
@@ -287,4 +302,11 @@ GeoBounds::convert(CoordRefSystem to) const
     auto eastNorth = m_eastNorth.convert(to);
     GeoBounds result{westSouth, eastNorth};
     return result;
+}
+
+void
+GeoBounds::update(GeoCoordinate& coord)
+{
+    m_westSouth.min(coord);
+    m_eastNorth.max(coord);
 }

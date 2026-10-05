@@ -153,8 +153,8 @@ public:
         return std::format("lon {}, lat {}", m_longitude, m_latitude);
     }
 private:
-    double m_longitude{0.0};
-    double m_latitude{0.0};
+    double m_longitude{};
+    double m_latitude{};
     CoordRefSystem m_coordRef;
 };
 
@@ -171,7 +171,9 @@ public:
     GeoBounds convert(CoordRefSystem to) const;
     GeoCoordinate& getWestSouth();
     GeoCoordinate& getEastNorth();
-
+    // in inverse direction -> usable to get effective bounds after update
+    void setLimits(CoordRefSystem coordRef = CoordRefSystem::CRS_84);
+    void update(GeoCoordinate& coord);
 private:
     GeoCoordinate m_westSouth;
     GeoCoordinate m_eastNorth;

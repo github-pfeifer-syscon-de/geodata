@@ -14,7 +14,14 @@ Additional services supporting WebMapService should be easy to add.
 As a additional option flight infos have been added.
 At the moment only Opensky is supported as it is freely available. 
 
+## Klm-data
+
+The Klm-format is prove of concept with limited support ~geoJson.
+The compressed variant is not supported to keep the dependencies 
+at bay.
+
 ## Build
+
 Requirs genericImg&genericGlm so build&install these first.
 
 ### Linux

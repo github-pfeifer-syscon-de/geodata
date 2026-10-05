@@ -32,10 +32,32 @@ public:
     KlmGeometry() = default;
     explicit KlmGeometry(const KlmGeometry& other) = delete;
     virtual ~KlmGeometry() = default;
-
+    virtual void addGeometry(const std::shared_ptr<KlmGeometry>& geom) = 0;
 };
 
 using PtrKlmGeometry = std::shared_ptr<KlmGeometry>;
+
+class KlmPoint
+: public Point
+, public KlmGeometry
+{
+public:
+    KlmPoint() = default;
+    explicit KlmPoint(const KlmPoint& other) = delete;
+    virtual ~KlmPoint() = default;
+
+    void moveCoords(const std::vector<GeoCoordinate>& coords) {
+        if (coords.size() == 1) {
+            m_coord = coords[0];
+        }
+        else {
+            std::cout << "KlmPolygon::moveCoords unexpected count " << coords.size() << std::endl;
+        }
+    }
+    void addGeometry(const std::shared_ptr<KlmGeometry>& geom) override {
+        std::cout << "KlmPoint::addGeometry will not work!" << std::endl;
+    }
+};
 
 class KlmSegment
 : public Segment
@@ -49,6 +71,10 @@ public:
     void moveCoords(const std::vector<GeoCoordinate>& coords){
         m_coords = std::move(coords);
     }
+    void addGeometry(const std::shared_ptr<KlmGeometry>& geom) override {
+        std::cout << "KlmSegment::addGeometry will not work!" << std::endl;
+    }
+
 protected:
 };
 
@@ -92,6 +118,7 @@ public:
             return;
         }
         if (m_polygons.empty()) {
+            std::cout << "KlmMultiPolygon::addGeometry unexpected type creating polygon" << std::endl;
             m_polygons.push_back(std::make_shared<KlmPolygon>());
         }
         auto lastPoly = std::dynamic_pointer_cast<KlmPolygon>(m_polygons[m_polygons.size() - 1]);
@@ -132,15 +159,11 @@ public:
     virtual ~KlmPlacemark() = default;
 
     void addGeometry(const PtrKlmGeometry& geom) {
-        auto multi = std::dynamic_pointer_cast<KlmMultiPolygon>(geom);
-        if (multi) {
-            m_multiPolygon = std::move(multi);
+        if (!m_geometry) {
+            m_geometry = geom;
             return;
         }
-        if (!m_multiPolygon) {
-            m_multiPolygon = std::move(std::make_shared<KlmMultiPolygon>());
-        }
-        m_multiPolygon->addGeometry(geom);
+        m_geometry->addGeometry(geom);
     }
     void addSimpleData(const Glib::ustring& name, const Glib::ustring& content) {
         m_properties->addSimpleData(name, content);
@@ -149,15 +172,18 @@ public:
         return m_properties;
     }
     PtrGeometry getGeometry() override {
-        return m_multiPolygon;
+        return std::dynamic_pointer_cast<Geometry>(m_geometry);
     }
 protected:
     PtrKlmProperties m_properties;
-    PtrKlmMultiPolygon m_multiPolygon;
+    PtrKlmGeometry m_geometry;
 };
 
 using PtrKlmPlacemark = std::shared_ptr<KlmPlacemark>;
 
+// this is not a real implementation of the standard
+//   it just tries to use some of its features
+//   that are comparable to geojson
 class GeoKlm {
 public:
     GeoKlm();
@@ -176,7 +202,7 @@ public:
         }
         return feats;
     }
-    PtrKlmSegment parseCoords(const Glib::ustring& text);
+    PtrKlmGeometry parseCoords(const Glib::ustring& text);
 
     static constexpr auto MIN_ADJUST_SIZE{16ul};            // don't adjust for smaller sizes as for these calculation will be inaccurate, and it doesn't matter that much
     static constexpr double PESSIMISTIC_SIZE_RATIO{0.1};    // guess smaller tend to overallocation
