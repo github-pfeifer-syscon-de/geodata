@@ -182,14 +182,16 @@ public:
     GeoBounds convert(CoordRefSystem to) const;
     // aka min
     GeoCoordinate& getWestSouth();
+    GeoCoordinate getWestSouth() const;
     // aka max
     GeoCoordinate& getEastNorth();
+    GeoCoordinate getEastNorth() const;
     void setWestSouth(GeoCoordinate& min);
     void setEastNorth(GeoCoordinate& max);
     // in inverse direction -> usable to get effective bounds after update
     void setLimits(CoordRefSystem coordRef = CoordRefSystem::CRS_84);
-    void update(GeoCoordinate& coord);
-    void update(GeoBounds& other);
+    void update(const GeoCoordinate& coord);
+    void update(const GeoBounds& other);
     GeoCoordinate getDifference() const;
 
 private:

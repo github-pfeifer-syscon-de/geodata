@@ -279,8 +279,20 @@ GeoBounds::getWestSouth()
     return m_westSouth;
 }
 
+GeoCoordinate
+GeoBounds::getWestSouth() const
+{
+    return m_westSouth;
+}
+
 GeoCoordinate&
 GeoBounds::getEastNorth()
+{
+    return m_eastNorth;
+}
+
+GeoCoordinate
+GeoBounds::getEastNorth() const
 {
     return m_eastNorth;
 }
@@ -314,14 +326,14 @@ GeoBounds::convert(CoordRefSystem to) const
 }
 
 void
-GeoBounds::update(GeoCoordinate& coord)
+GeoBounds::update(const GeoCoordinate& coord)
 {
     m_westSouth.min(coord);
     m_eastNorth.max(coord);
 }
 
 void
-GeoBounds::update(GeoBounds& bounds)
+GeoBounds::update(const GeoBounds& bounds)
 {
     update(bounds.getWestSouth());
     update(bounds.getEastNorth());
