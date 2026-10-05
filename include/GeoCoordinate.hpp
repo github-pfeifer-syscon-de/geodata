@@ -19,10 +19,11 @@
 #pragma once
 
 #include <glibmm.h>
+#include <iostream>
 #include <cmath>
 #include <charconv>
 #include <format>
-#include <GenericGlmCompat.hpp> // providers pi constants for windows
+#include <numbers>
 
 class CoordRefSystem {
 public:
@@ -73,8 +74,8 @@ public:
     static CoordRefSystem parse(const Glib::ustring& ref);
     bool is_latitude_first() const;
     static constexpr auto EARTH_RADI_WGS84_M{6378137.0};
-    static constexpr auto EPSG3857_MIN{-M_PI * EARTH_RADI_WGS84_M};
-    static constexpr auto EPSG3857_MAX{M_PI * EARTH_RADI_WGS84_M};
+    static constexpr auto EPSG3857_MIN{-std::numbers::pi * EARTH_RADI_WGS84_M};
+    static constexpr auto EPSG3857_MAX{std::numbers::pi * EARTH_RADI_WGS84_M};
     friend std::ostream& operator<<(std::ostream& os, const CoordRefSystem& myRef) {
         os << myRef.identifier();
         return os;
@@ -141,9 +142,19 @@ public:
         return GeoCoordinate{std::ceil(m_longitude), std::ceil(m_latitude), m_coordRef};
     }
     auto operator-(const GeoCoordinate& sub) const->GeoCoordinate {
+        if (m_coordRef != sub.getCoordRefSystem()) {
+            std::cerr << "GeoCoordinate::operator- using missmatch coordRefSystem"
+                      << " this"  << m_coordRef.identifier()
+                      << " sub " << sub.getCoordRefSystem().identifier() << std::endl;
+        }
         return GeoCoordinate{m_longitude - sub.m_longitude, m_latitude - sub.m_latitude, m_coordRef};
     }
     auto operator+(const GeoCoordinate& add) const->GeoCoordinate {
+        if (m_coordRef != add.getCoordRefSystem()) {
+            std::cerr << "GeoCoordinate::operator+ using missmatch coordRefSystem"
+                      << " this"  << m_coordRef.identifier()
+                      << " sub " << add.getCoordRefSystem().identifier() << std::endl;
+        }
         return GeoCoordinate{m_longitude + add.m_longitude, m_latitude + add.m_latitude, m_coordRef};
     }
     auto distance(const GeoCoordinate& sub) const->double {
@@ -169,13 +180,18 @@ public:
 
     Glib::ustring printValue(char separator = ',') const;
     GeoBounds convert(CoordRefSystem to) const;
+    // aka min
     GeoCoordinate& getWestSouth();
+    // aka max
     GeoCoordinate& getEastNorth();
     void setWestSouth(GeoCoordinate& min);
     void setEastNorth(GeoCoordinate& max);
     // in inverse direction -> usable to get effective bounds after update
     void setLimits(CoordRefSystem coordRef = CoordRefSystem::CRS_84);
     void update(GeoCoordinate& coord);
+    void update(GeoBounds& other);
+    GeoCoordinate getDifference() const;
+
 private:
     GeoCoordinate m_westSouth;
     GeoCoordinate m_eastNorth;

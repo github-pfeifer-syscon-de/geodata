@@ -16,9 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
-#include <array>
-#include <Log.hpp>
 #include <StringUtils.hpp>
 
 #include "GeoCoordinate.hpp"
@@ -293,6 +290,7 @@ GeoBounds::setWestSouth(GeoCoordinate& min)
 {
     m_westSouth = min;
 }
+
 void
 GeoBounds::setEastNorth(GeoCoordinate& max)
 {
@@ -320,4 +318,18 @@ GeoBounds::update(GeoCoordinate& coord)
 {
     m_westSouth.min(coord);
     m_eastNorth.max(coord);
+}
+
+void
+GeoBounds::update(GeoBounds& bounds)
+{
+    update(bounds.getWestSouth());
+    update(bounds.getEastNorth());
+}
+
+GeoCoordinate
+GeoBounds::getDifference() const
+{
+    auto diff = m_eastNorth - m_westSouth;
+    return diff;
 }

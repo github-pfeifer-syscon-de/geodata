@@ -17,7 +17,6 @@
  */
 
 #include <glibmm.h>
-#include <GenericGlmCompat.hpp> // providers pi constants for windows
 #include <cmath>
 
 #include "MapProjection.hpp"
@@ -25,14 +24,14 @@
 double
 MapProjection::normToRadians(double rel)
 {
-	return rel * M_PI_2;
+	return rel * pi_half;
 }
 
 
 double
 MapProjection::radiansToNorm(double rel)
 {
-	return rel / M_PI_2;
+	return rel / pi_half;
 }
 
 // not much to project in this case
@@ -46,18 +45,18 @@ double
 MapProjectionMercator::fromLinearLatitude(double input)
 {
     auto absinput = std::abs(input);
-    double ym = std::log(std::tan(M_PI_4 + normToRadians(absinput) / 2.0));
+    double ym = std::log(std::tan(pi_quart + normToRadians(absinput) / 2.0));
     if (input < 0.0) {
         ym = -ym;
     }
-    return ym / M_PI;   // keep range -1...1
+    return ym / std::numbers::pi;   // keep range -1...1
 }
 
 double
 MapProjectionMercator::toLinearLatitude(double input)
 {
     auto absinput = std::abs(input);
-    double yr = 2.0 * (std::atan(std::exp(absinput * M_PI)) - M_PI_4);
+    double yr = 2.0 * (std::atan(std::exp(absinput * std::numbers::pi)) - pi_quart);
     if (input < 0.0) {
         yr = -yr;
     }

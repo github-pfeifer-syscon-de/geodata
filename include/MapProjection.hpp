@@ -18,6 +18,9 @@
 
 #pragma once
 
+#include <numbers>
+
+
 class MapProjection
 {
 public:
@@ -29,6 +32,9 @@ public:
     virtual double fromLinearLatitude(double rel) = 0;
     virtual double toLinearLatitude(double rel) = 0;
     double fromLinearLongitude(double input);
+
+    static constexpr auto pi_half{std::numbers::pi / 2.0};
+    static constexpr auto pi_quart{std::numbers::pi / 4.0};
 protected:
     double normToRadians(double norm);
     double radiansToNorm(double rel);
