@@ -265,8 +265,8 @@ void
 GeoBounds::setLimits(CoordRefSystem coordRef)
 {
     if (coordRef == CoordRefSystem::EPSG_3857) {    // set directly as values might not be "computable" by methods below
-        m_westSouth = GeoCoordinate(CoordRefSystem::EPSG3857_MAX, CoordRefSystem::EPSG3857_MIN, coordRef);
-        m_eastNorth = GeoCoordinate(CoordRefSystem::EPSG3857_MIN, CoordRefSystem::EPSG3857_MAX, coordRef);
+        m_westSouth = GeoCoordinate(CoordRefSystem::EPSG3857_MAX, CoordRefSystem::EPSG3857_MAX, coordRef);
+        m_eastNorth = GeoCoordinate(CoordRefSystem::EPSG3857_MIN, CoordRefSystem::EPSG3857_MIN, coordRef);
 
     }
     else {
